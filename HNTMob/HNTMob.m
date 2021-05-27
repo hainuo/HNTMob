@@ -53,7 +53,7 @@
 - (void)dispose {
 	// 方法在模块销毁之前被调用
 	NSLog(@"HNTMob  被销毁了");
-    [self removeSplashNotification];
+	[self removeSplashNotification];
 }
 #pragma mark - HNTMOB INIT
 JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
@@ -144,7 +144,6 @@ JS_METHOD_SYNC(showSplashAd:(UZModuleMethodContext *)context){
 		}
 	}else{
 		if(isFullAd) {
-
 			[self.splashAd showFullScreenAdInWindow:window withLogoImage:nil skipView:nil];
 		}else{
 			[self.splashAd showAdInWindow:window withBottomView:nil skipView:nil];
@@ -293,167 +292,167 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	NSDictionary *params = context.param;
 	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
 	NSString *fixedOn  = [params stringValueForKey:@"fixedOn" defaultValue:nil];
-    NSDictionary *rect = [params dictValueForKey:@"rect" defaultValue:@{}];
-    NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
-    NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
+	NSDictionary *rect = [params dictValueForKey:@"rect" defaultValue:@{}];
+	NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
+	NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
 	BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
 
-    float x = [rect floatValueForKey:@"x" defaultValue:0];
-    float y = [rect floatValueForKey:@"y" defaultValue:0];
-    float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
-    float height = [rect floatValueForKey:@"height" defaultValue:width/16.0 * 9];
-    
-    NSLog(@"rect %@ %f %f %f %f",rect,x,y,width,height);
-    
-    
+	float x = [rect floatValueForKey:@"x" defaultValue:0];
+	float y = [rect floatValueForKey:@"y" defaultValue:0];
+	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
+	float height = [rect floatValueForKey:@"height" defaultValue:width/16.0 * 9];
+
+	NSLog(@"rect %@ %f %f %f %f",rect,x,y,width,height);
+
+
 //    UIView *frameView= [[UIView alloc] initWithFrame:CGRectMake(x, y, width, height)];
 //    frameView.backgroundColor  = [UIColor blueColor];
 //    [self addSubview:frameView fixedOn:fixedOn fixed:fixed];
-    
-    self.videoConfig = [[GDTVideoConfig alloc] init];
-    self.videoConfig.videoMuted = NO;
-    self.videoConfig.autoPlayPolicy = GDTVideoAutoPlayPolicyAlways;
-    self.videoConfig.userControlEnable = YES;
-    self.videoConfig.autoResumeEnable = NO;
-    self.videoConfig.detailPageEnable = NO;
-    self.videoConfig.coverImageEnable = YES;
-    self.videoConfig.progressViewEnable = NO;
-    
 
-    self.unifiedNativeAd = [[GDTUnifiedNativeAd alloc] initWithPlacementId:adId];
-    self.unifiedNativeAd.delegate = self;
-    self.unifiedNativeAd.minVideoDuration = minVideoDuration;
-    self.unifiedNativeAd.maxVideoDuration = maxVideoDuration;
+	self.videoConfig = [[GDTVideoConfig alloc] init];
+	self.videoConfig.videoMuted = NO;
+	self.videoConfig.autoPlayPolicy = GDTVideoAutoPlayPolicyAlways;
+	self.videoConfig.userControlEnable = YES;
+	self.videoConfig.autoResumeEnable = NO;
+	self.videoConfig.detailPageEnable = NO;
+	self.videoConfig.coverImageEnable = YES;
+	self.videoConfig.progressViewEnable = NO;
 
-    [self.unifiedNativeAd setVastClassName:@"IMAGDT_VASTVideoAdAdapter"]; // 如果需要支持 VAST 广告，拉取广告前设置
 
-    [self.unifiedNativeAd loadAdWithAdCount:1];
-    
-    [self addSubview:self.videoContainerView fixedOn:fixedOn fixed:fixed];
-    // 播放器容器
+	self.unifiedNativeAd = [[GDTUnifiedNativeAd alloc] initWithPlacementId:adId];
+	self.unifiedNativeAd.delegate = self;
+	self.unifiedNativeAd.minVideoDuration = minVideoDuration;
+	self.unifiedNativeAd.maxVideoDuration = maxVideoDuration;
+
+	[self.unifiedNativeAd setVastClassName:@"IMAGDT_VASTVideoAdAdapter"]; // 如果需要支持 VAST 广告，拉取广告前设置
+
+	[self.unifiedNativeAd loadAdWithAdCount:1];
+
+	[self addSubview:self.videoContainerView fixedOn:fixedOn fixed:fixed];
+	// 播放器容器
 //    self.videoContainerView.translatesAutoresizingMaskIntoConstraints = NO;
 //    UIView *view = self.viewController.view;
 //    [self.videoContainerView.leftAnchor constraintEqualToAnchor:view.leftAnchor].active = YES;
 //    [self.videoContainerView.rightAnchor constraintEqualToAnchor:view.rightAnchor].active = YES;
 //    [self.videoContainerView.topAnchor constraintEqualToAnchor:view.topAnchor].active = YES;
 //    [self.videoContainerView.heightAnchor constraintEqualToAnchor:self.videoContainerView.widthAnchor multiplier:9/16.0].active = YES;
-    [self view:self.videoContainerView addConstraintsWithRect:rect];
-    
-    [self.videoContainerView addSubview:self.nativeAdCustomView];
-    // 贴片广告布局
-    self.nativeAdCustomView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView.leftAnchor constraintEqualToAnchor:self.videoContainerView.leftAnchor].active = YES;
-    [self.nativeAdCustomView.rightAnchor constraintEqualToAnchor:self.videoContainerView.rightAnchor].active = YES;
-    [self.nativeAdCustomView.topAnchor constraintEqualToAnchor:self.videoContainerView.topAnchor].active = YES;
-    [self.nativeAdCustomView.bottomAnchor constraintEqualToAnchor:self.videoContainerView.bottomAnchor].active = YES;
-    
-    self.nativeAdCustomView.clickButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView.clickButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
-    [self.nativeAdCustomView.clickButton.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor constant:-10].active = YES;
-    [self.nativeAdCustomView.clickButton.widthAnchor constraintEqualToConstant:80].active = YES;
-    [self.nativeAdCustomView.clickButton.heightAnchor constraintEqualToConstant:44].active = YES;
-    self.nativeAdCustomView.clickButton.backgroundColor = [UIColor orangeColor];
+	[self view:self.videoContainerView addConstraintsWithRect:rect];
 
-    self.countdownLabel.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView addSubview:self.countdownLabel];
-    [self.countdownLabel.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
-    [self.countdownLabel.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
-    [self.countdownLabel.widthAnchor constraintEqualToConstant:40].active = YES;
-    [self.countdownLabel.heightAnchor constraintEqualToConstant:40].active = YES;
+	[self.videoContainerView addSubview:self.nativeAdCustomView];
+	// 贴片广告布局
+	self.nativeAdCustomView.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView.leftAnchor constraintEqualToAnchor:self.videoContainerView.leftAnchor].active = YES;
+	[self.nativeAdCustomView.rightAnchor constraintEqualToAnchor:self.videoContainerView.rightAnchor].active = YES;
+	[self.nativeAdCustomView.topAnchor constraintEqualToAnchor:self.videoContainerView.topAnchor].active = YES;
+	[self.nativeAdCustomView.bottomAnchor constraintEqualToAnchor:self.videoContainerView.bottomAnchor].active = YES;
 
-    self.skipButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView addSubview:self.skipButton];
-    [self.skipButton.rightAnchor constraintEqualToAnchor:self.countdownLabel.leftAnchor constant:-10].active = YES;
-    [self.skipButton.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
-    [self.skipButton.widthAnchor constraintEqualToConstant:60].active = YES;
-    [self.skipButton.heightAnchor constraintEqualToConstant:40].active = YES;
-    
-    [self.nativeAdCustomView addSubview:self.nativeAdCustomView.logoView];
-    self.nativeAdCustomView.logoView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView.logoView.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor].active = YES;
-    [self.nativeAdCustomView.logoView.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor].active = YES;
-    [self.nativeAdCustomView.logoView.widthAnchor constraintEqualToConstant:kGDTLogoImageViewDefaultWidth].active = YES;
-    [self.nativeAdCustomView.logoView.heightAnchor constraintEqualToConstant:kGDTLogoImageViewDefaultHeight].active = YES;
-    
+	self.nativeAdCustomView.clickButton.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView.clickButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
+	[self.nativeAdCustomView.clickButton.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor constant:-10].active = YES;
+	[self.nativeAdCustomView.clickButton.widthAnchor constraintEqualToConstant:80].active = YES;
+	[self.nativeAdCustomView.clickButton.heightAnchor constraintEqualToConstant:44].active = YES;
+	self.nativeAdCustomView.clickButton.backgroundColor = [UIColor orangeColor];
+
+	self.countdownLabel.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView addSubview:self.countdownLabel];
+	[self.countdownLabel.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
+	[self.countdownLabel.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
+	[self.countdownLabel.widthAnchor constraintEqualToConstant:40].active = YES;
+	[self.countdownLabel.heightAnchor constraintEqualToConstant:40].active = YES;
+
+	self.skipButton.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView addSubview:self.skipButton];
+	[self.skipButton.rightAnchor constraintEqualToAnchor:self.countdownLabel.leftAnchor constant:-10].active = YES;
+	[self.skipButton.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
+	[self.skipButton.widthAnchor constraintEqualToConstant:60].active = YES;
+	[self.skipButton.heightAnchor constraintEqualToConstant:40].active = YES;
+
+	[self.nativeAdCustomView addSubview:self.nativeAdCustomView.logoView];
+	self.nativeAdCustomView.logoView.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView.logoView.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor].active = YES;
+	[self.nativeAdCustomView.logoView.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor].active = YES;
+	[self.nativeAdCustomView.logoView.widthAnchor constraintEqualToConstant:kGDTLogoImageViewDefaultWidth].active = YES;
+	[self.nativeAdCustomView.logoView.heightAnchor constraintEqualToConstant:kGDTLogoImageViewDefaultHeight].active = YES;
+
 	if(!self.uniFiedNativeAdObserver) {
 		__weak typeof(self) _self = self;
 		self.uniFiedNativeAdObserver = [[NSNotificationCenter defaultCenter] addObserverForName:@"loadUnifiedNativeAd" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification * _Nonnull note) {
-		                                 NSLog(@"接收到loadUniFiedNativeAdObserver通知，%@",note.object);
-		                                 __strong typeof(_self) self = _self;
-		                                 if(!self) return;
-		                                 [context callbackWithRet:note.object err:nil delete:NO];
-					 }];
+		                                        NSLog(@"接收到loadUniFiedNativeAdObserver通知，%@",note.object);
+		                                        __strong typeof(_self) self = _self;
+		                                        if(!self) return;
+		                                        [context callbackWithRet:note.object err:nil delete:NO];
+						}];
 	}
 
-	[context callbackWithRet:@{@"code":@1,@"unifiedNativeAd":@"loadUniFiedNativeAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"} err:nil delete:NO];
+	[context callbackWithRet:@{@"code":@1,@"unifiedNativeAdType":@"loadUniFiedNativeAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"} err:nil delete:NO];
 }
 - (void)clickSkip
 {
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"loadUniFiedNativeAd",@"eventType":@"adClickSkip",@"msg":@"贴片广告点击跳过"}];
-    
-    [self closeAd];
-    
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUniFiedNativeAd",@"eventType":@"adClickSkip",@"msg":@"贴片广告点击跳过"}];
+
+	[self closeAd];
+
 }
--(void) closeAd{
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"adClosed",@"msg":@"贴片广告关闭"}];
-    [self.timer invalidate];
-    self.timer = nil;
-    [self.nativeAdCustomView removeFromSuperview];
-    [self.nativeAdCustomView unregisterDataObject];
-    
-    [self.videoContainerView removeFromSuperview];
-    
-    _nativeAdCustomView = nil;
-    _videoContainerView = nil;
-    [self removeUnifiedNativeAdNotification];
+-(void) closeAd {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adClosed",@"msg":@"贴片广告关闭"}];
+	[self.timer invalidate];
+	self.timer = nil;
+	[self.nativeAdCustomView removeFromSuperview];
+	[self.nativeAdCustomView unregisterDataObject];
+
+	[self.videoContainerView removeFromSuperview];
+
+	_nativeAdCustomView = nil;
+	_videoContainerView = nil;
+	[self removeUnifiedNativeAdNotification];
 }
 - (void)reloadAd
 {
-    self.dataObject.videoConfig = self.videoConfig;
-    self.nativeAdCustomView.viewController = self.viewController;
-    
-    [self.nativeAdCustomView registerDataObject:self.dataObject clickableViews:@[self.nativeAdCustomView.clickButton]];
-    if (self.dataObject.isAppAd) {
-        [self.nativeAdCustomView.clickButton setTitle:@"点击下载" forState:UIControlStateNormal];
-    } else {
-        [self.nativeAdCustomView.clickButton setTitle:@"查看详情" forState:UIControlStateNormal];
-    }
-    self.nativeAdCustomView.mediaView.delegate = self;
-    self.timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(timeUpdate) userInfo:nil repeats:YES];
+	self.dataObject.videoConfig = self.videoConfig;
+	self.nativeAdCustomView.viewController = self.viewController;
+
+	[self.nativeAdCustomView registerDataObject:self.dataObject clickableViews:@[self.nativeAdCustomView.clickButton]];
+	if (self.dataObject.isAppAd) {
+		[self.nativeAdCustomView.clickButton setTitle:@"点击下载" forState:UIControlStateNormal];
+	} else {
+		[self.nativeAdCustomView.clickButton setTitle:@"查看详情" forState:UIControlStateNormal];
+	}
+	self.nativeAdCustomView.mediaView.delegate = self;
+	self.timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(timeUpdate) userInfo:nil repeats:YES];
 }
 
 - (void)timeUpdate
 {
-    CGFloat playTime = [self.nativeAdCustomView.mediaView videoPlayTime];
-    CGFloat duration = [self.nativeAdCustomView.mediaView videoDuration];
-    if (duration > 0) {
-        self.countdownLabel.hidden = NO;
-    }
-    if (playTime > 5000) {
-        // 播放 5 秒展示跳过按钮
-        self.skipButton.hidden = NO;
-    }
-    if (playTime < duration) {
-        self.countdownLabel.text =  [NSString stringWithFormat:@"%@", @((NSInteger)(duration - playTime) / 1000)];
-        NSLog(@"总时长：%@， 已播放：%@", @(duration), @(playTime));
-    }
+	CGFloat playTime = [self.nativeAdCustomView.mediaView videoPlayTime];
+	CGFloat duration = [self.nativeAdCustomView.mediaView videoDuration];
+	if (duration > 0) {
+		self.countdownLabel.hidden = NO;
+	}
+	if (playTime > 5000) {
+		// 播放 5 秒展示跳过按钮
+		self.skipButton.hidden = NO;
+	}
+	if (playTime < duration) {
+		self.countdownLabel.text =  [NSString stringWithFormat:@"%@", @((NSInteger)(duration - playTime) / 1000)];
+		NSLog(@"总时长：%@， 已播放：%@", @(duration), @(playTime));
+	}
 }
--(void)removeUnifiedNativeAdNotification{
-    [self.timer invalidate];
-    self.timer = nil;
-    [self.nativeAdCustomView removeFromSuperview];
-    [self.nativeAdCustomView unregisterDataObject];
-    
-    [self.videoContainerView removeFromSuperview];
-    
-    _nativeAdCustomView = nil;
-    _videoContainerView = nil;
-    if(self.uniFiedNativeAdObserver) {
-        NSLog(@"移除通知监听");
-        [[NSNotificationCenter defaultCenter] removeObserver:self.uniFiedNativeAdObserver name:@"loadUnifiedNativeAd" object:nil];
-        self.uniFiedNativeAdObserver = nil;
-    }
-//    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"loadUniFiedNativeAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"}];
+-(void)removeUnifiedNativeAdNotification {
+	[self.timer invalidate];
+	self.timer = nil;
+	[self.nativeAdCustomView removeFromSuperview];
+	[self.nativeAdCustomView unregisterDataObject];
+
+	[self.videoContainerView removeFromSuperview];
+
+	_nativeAdCustomView = nil;
+	_videoContainerView = nil;
+	if(self.uniFiedNativeAdObserver) {
+		NSLog(@"移除通知监听");
+		[[NSNotificationCenter defaultCenter] removeObserver:self.uniFiedNativeAdObserver name:@"loadUnifiedNativeAd" object:nil];
+		self.uniFiedNativeAdObserver = nil;
+	}
+//    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUniFiedNativeAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"}];
 }
 #pragma mark - 贴片广告  getter setter
 - (UnifiedNativeAdCustomView *)nativeAdCustomView
@@ -502,14 +501,14 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	return _skipButton;
 }
 
-#pragma mark - GDTUnifiedNativeAdDelegate
+#pragma mark - 贴片广告 GDTUnifiedNativeAdDelegate
 - (void)gdt_unifiedNativeAdLoaded:(NSArray<GDTUnifiedNativeAdDataObject *> *)unifiedNativeAdDataObjects error:(NSError *)error
 {
 	if (!error && unifiedNativeAdDataObjects.count > 0) {
 		NSLog(@"成功请求到广告数据");
 		self.dataObject = unifiedNativeAdDataObjects[0];
 		NSLog(@"eCPM:%ld eCPMLevel:%@", [self.dataObject eCPM], [self.dataObject eCPMLevel]);
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"}];
+		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"贴片广告加载成功"}];
 		if (self.dataObject.isVideoAd) {
 			[self reloadAd];
 			return;
@@ -519,7 +518,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		}
 	}
 
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"doLoad",@"msg":error.userInfo}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo}];
 	if (error.code == 5004) {
 		NSLog(@"没匹配的广告，禁止重试，否则影响流量变现效果");
 	} else if (error.code == 5005) {
@@ -537,57 +536,57 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	} else if (error) {
 		NSLog(@"ERROR: %@", error);
 	}
-    [self removeUnifiedNativeAdNotification];
+	[self removeUnifiedNativeAdNotification];
 }
 
-#pragma mark - GDTMediaViewDelegate
+#pragma mark - 贴片广告 GDTMediaViewDelegate
 - (void)gdt_mediaViewDidPlayFinished:(GDTMediaView *)mediaView
 {
 	NSLog(@"%s",__FUNCTION__);
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"adPlayFinished",@"msg":@"贴片广告视频播放结束"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adPlayFinished",@"msg":@"贴片广告视频播放结束"}];
 	[self closeAd];
 }
 
-#pragma mark - GDTUnifiedNativeAdViewDelegate
+#pragma mark - 贴片广告 GDTUnifiedNativeAdViewDelegate
 - (void)gdt_unifiedNativeAdViewDidClick:(GDTUnifiedNativeAdView *)unifiedNativeAdView
 {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"%@ 广告被点击", unifiedNativeAdView.dataObject);
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"adClicked",@"msg":@"贴片广告被点击了"}];
-    
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adClicked",@"msg":@"贴片广告被点击了"}];
+
 }
 
 - (void)gdt_unifiedNativeAdViewWillExpose:(GDTUnifiedNativeAdView *)unifiedNativeAdView
 {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"广告被曝光");
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"adShowed",@"msg":@"贴片广告曝光了"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adShowed",@"msg":@"贴片广告曝光了"}];
 }
 
 - (void)gdt_unifiedNativeAdDetailViewClosed:(GDTUnifiedNativeAdView *)unifiedNativeAdView
 {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"广告详情页已关闭");
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"adPageClosed",@"msg":@"贴片广告详情页关闭了"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adPageClosed",@"msg":@"贴片广告详情页关闭了"}];
 }
 
 - (void)gdt_unifiedNativeAdViewApplicationWillEnterBackground:(GDTUnifiedNativeAdView *)unifiedNativeAdView
 {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"广告进入后台");
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"enterBackground",@"msg":@"贴片广告进入后台"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"enterBackground",@"msg":@"贴片广告进入后台"}];
 }
 
 - (void)gdt_unifiedNativeAdDetailViewWillPresentScreen:(GDTUnifiedNativeAdView *)unifiedNativeAdView
 {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"广告详情页面即将打开");
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"adPageShowed",@"msg":@"贴片广告详情页打开了"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adPageShowed",@"msg":@"贴片广告详情页打开了"}];
 }
 
 - (void)gdt_unifiedNativeAdView:(GDTUnifiedNativeAdView *)unifiedNativeAdView playerStatusChanged:(GDTMediaPlayerStatus)status userInfo:(NSDictionary *)userInfo
 {
- 
+
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"视频广告状态变更");
 	switch (status) {
@@ -615,8 +614,12 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		long videoDuration = [userInfo[kGDTUnifiedNativeAdKeyVideoDuration] longValue];
 		NSLog(@"视频广告长度为 %ld s", videoDuration);
 	}
-    
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAd":@"showUniFiedNativeAd",@"eventType":@"videoStatusChange",@"msg":@"贴片广告 视频广告状态变更",@"userInfo":userInfo,@"status": @(status)}];
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"videoStatusChange",@"msg":@"贴片广告 视频广告状态变更",@"userInfo":userInfo,@"status": @(status)}];
 }
+
+#pragma mark -- 插屏2.0
+
+
 
 @end
