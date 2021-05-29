@@ -11,15 +11,16 @@
 #import "TMob/GDTSplashZoomOutView.h"
 #import "TMob/GDTUnifiedNativeAd.h"
 #import "UnifiedNativeAdCustomView.h"
+#import "TMob/GDTUnifiedInterstitialAd.h"
 
-@interface HNTMob ()<GDTSplashAdDelegate,GDTUnifiedNativeAdDelegate, GDTUnifiedNativeAdViewDelegate, GDTMediaViewDelegate>
-//splashAd
+@interface HNTMob ()<GDTSplashAdDelegate,GDTUnifiedNativeAdDelegate, GDTUnifiedNativeAdViewDelegate, GDTMediaViewDelegate, GDTUnifiedInterstitialAdDelegate>
+//splashAd 开屏
 @property (nonatomic, strong)  GDTSplashAd *splashAd;
 @property (nonatomic,strong) NSString *splashAdType;
 @property (nonatomic, strong) NSObject *splashAdObserver;
 @property (nonatomic, strong) UIView *bottomView;
 
-//unifiedNativeAd
+//unifiedNativeAd 贴片
 @property (nonatomic, strong) GDTVideoConfig *videoConfig;
 @property (nonatomic, strong) NSObject *uniFiedNativeAdObserver;
 @property (nonatomic, strong) UIView *videoContainerView;
@@ -29,6 +30,10 @@
 @property (nonatomic, strong) UILabel *countdownLabel;
 @property (nonatomic, strong) UIButton *skipButton;
 @property (nonatomic, strong) NSTimer *timer;
+
+//UnifiedIterstitialAd //插屏2.0
+@property (nonatomic, strong) GDTUnifiedInterstitialAd *interstitialAd;
+@property (nonatomic, strong) NSObject *unifiedInterstitialAdObserver;
 
 
 @end
@@ -128,27 +133,35 @@ JS_METHOD_SYNC(showSplashAd:(UZModuleMethodContext *)context){
 		fullLogoPath = [self getPathWithUZSchemeURL:logoPath];
 	}
 	UIWindow *window = [UIApplication sharedApplication].windows[0];
-	if(fullLogoPath) {
-		if(isFullAd) {
-			[self.splashAd showFullScreenAdInWindow:window withLogoImage:[UIImage imageWithContentsOfFile:fullLogoPath] skipView:nil];
-		}else{
-			CGFloat logoHeight = [[UIScreen mainScreen] bounds].size.height * 0.25;
-			self.bottomView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, logoHeight)];
-			self.bottomView.backgroundColor = [UIColor whiteColor];
-			UIImageView *logo = [[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:fullLogoPath]];
-			logo.accessibilityIdentifier = @"splash_logo";
-			logo.frame = CGRectMake(0, 0, 311, 47);
-			logo.center = self.bottomView.center;
-			[self.bottomView addSubview:logo];
-			[self.splashAd showAdInWindow:window withBottomView:self.bottomView skipView:nil];
-		}
-	}else{
-		if(isFullAd) {
-			[self.splashAd showFullScreenAdInWindow:window withLogoImage:nil skipView:nil];
-		}else{
-			[self.splashAd showAdInWindow:window withBottomView:nil skipView:nil];
-		}
-	}
+
+	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+	[waitQueue addOperationWithBlock:^{
+	         // 同步到主线程
+	         dispatch_async(dispatch_get_main_queue(), ^{
+
+					if(fullLogoPath) {
+						if(isFullAd) {
+							[self.splashAd showFullScreenAdInWindow:window withLogoImage:[UIImage imageWithContentsOfFile:fullLogoPath] skipView:nil];
+						}else{
+							CGFloat logoHeight = [[UIScreen mainScreen] bounds].size.height * 0.25;
+							self.bottomView = [[UIView alloc] initWithFrame:CGRectMake(0, 0, [[UIScreen mainScreen] bounds].size.width, logoHeight)];
+							self.bottomView.backgroundColor = [UIColor whiteColor];
+							UIImageView *logo = [[UIImageView alloc] initWithImage:[UIImage imageWithContentsOfFile:fullLogoPath]];
+							logo.accessibilityIdentifier = @"splash_logo";
+							logo.frame = CGRectMake(0, 0, 311, 47);
+							logo.center = self.bottomView.center;
+							[self.bottomView addSubview:logo];
+							[self.splashAd showAdInWindow:window withBottomView:self.bottomView skipView:nil];
+						}
+					}else{
+						if(isFullAd) {
+							[self.splashAd showFullScreenAdInWindow:window withLogoImage:nil skipView:nil];
+						}else{
+							[self.splashAd showAdInWindow:window withBottomView:nil skipView:nil];
+						}
+					}
+				});
+	 }];
 
 
 	return @{@"code":@1,@"splashAdType":self.splashAdType,@"eventType":@"doShow",@"msg":@"开屏广告展示命令成功！"};
@@ -619,7 +632,263 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 }
 
 #pragma mark -- 插屏2.0
+JS_METHOD(loadUnifiedInterstitialAd:(UZModuleMethodContext *)context){
+	NSDictionary *params = context.param;
+	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
+//    NSString *fixedOn  = [params stringValueForKey:@"fixedOn" defaultValue:nil];
+//    NSDictionary *rect = [params dictValueForKey:@"rect" defaultValue:@{}];
+	BOOL isFullScreen = [params boolValueForKey:@"isFullScreen" defaultValue:YES];
+	NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
+	NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
+//    BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
+	if (_interstitialAd) {
+		_interstitialAd.delegate = nil;
+	}
+	_interstitialAd = [[GDTUnifiedInterstitialAd alloc] initWithPlacementId:adId];
+	_interstitialAd.delegate = self;
+	_interstitialAd.videoMuted = NO;
+	_interstitialAd.minVideoDuration = minVideoDuration;
+	_interstitialAd.maxVideoDuration = maxVideoDuration; // 如果需要设置视频最大时长，可以通过这个参数来进行设置
+	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+	[waitQueue addOperationWithBlock:^{
+	         // 同步到主线程
+	         dispatch_async(dispatch_get_main_queue(), ^{
+					if(isFullScreen) {
+						[self->_interstitialAd loadFullScreenAd];
+					}else{
+						[self->_interstitialAd loadAd];
+					}
+             });
+	 }];
+
+	if(!self.unifiedInterstitialAdObserver) {
+		__weak typeof(self) _self = self;
+		self.unifiedInterstitialAdObserver = [[NSNotificationCenter defaultCenter] addObserverForName:@"loadUnifiedInterstitialAd" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification * _Nonnull note) {
+		                                              NSLog(@"接收到loadUnifiedInterstitialAdObserver通知，%@",note.object);
+		                                              __strong typeof(_self) self = _self;
+		                                              if(!self) return;
+		                                              [context callbackWithRet:note.object err:nil delete:NO];
+						      }];
+	}
+
+	[context callbackWithRet:@{@"code":@1,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"} err:nil delete:NO];
+}
+
+JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
+	NSDictionary *params = context.param;
+
+	BOOL isFullScreen = [params boolValueForKey:@"isFullScreen" defaultValue:YES];
+	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+	[waitQueue addOperationWithBlock:^{
+	         // 同步到主线程
+	         dispatch_async(dispatch_get_main_queue(), ^{
+					if(isFullScreen) {
+						[self->_interstitialAd presentFullScreenAdFromRootViewController:self.viewController];
+					}else{
+						[self->_interstitialAd presentAdFromRootViewController:self.viewController];
+					}
+				});
+	 }];
 
 
+
+	return @{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"doShow",@"msg":@"插屏广告展示命令执行成功"};
+}
+
+#pragma mark 插屏广告 HNTMob 方法
+-(void)removeUnifiedInterstitialAdNotification {
+
+	if(self.unifiedInterstitialAdObserver) {
+		NSLog(@"移除通知监听");
+		[[NSNotificationCenter defaultCenter] removeObserver:self.unifiedInterstitialAdObserver name:@"loadUnifiedInterstitialAd" object:nil];
+		self.unifiedInterstitialAdObserver = nil;
+	}
+//    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"}];
+}
+
+#pragma mark 插屏广告 GDTUnifiedInterstitialAdDelegate
+/**
+ *  插屏2.0广告预加载成功回调
+ *  当接收服务器返回的广告数据成功且预加载后调用该函数
+ */
+- (void)unifiedInterstitialSuccessToLoadAd:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s %@",__FUNCTION__,@"Load Success." );
+	NSLog(@"eCPM:%ld eCPMLevel:%@", [unifiedInterstitial eCPM], [unifiedInterstitial eCPMLevel]);
+	NSLog(@"videoDuration:%lf isVideo: %@", unifiedInterstitial.videoDuration, @(unifiedInterstitial.isVideoAd));
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoaded",@"msg":@"插屏广告加载成功",@"isVideoAd":@(unifiedInterstitial.isVideoAd),@"eCPM": @([unifiedInterstitial eCPM]),@"eCPMLevel":[unifiedInterstitial eCPMLevel]?:@"",@"videoDuration":@(unifiedInterstitial.videoDuration)}];
+}
+
+/**
+ *  插屏2.0广告预加载失败回调
+ *  当接收服务器返回的广告数据失败后调用该函数
+ */
+- (void)unifiedInterstitialFailToLoadAd:(GDTUnifiedInterstitialAd *)unifiedInterstitial error:(NSError *)error {
+	NSLog(@"%s Error : %@",__FUNCTION__,error);
+	NSLog(@"interstitial fail to load, Error : %@",error);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoadFailed",@"msg":@"插屏广告加载失败"}];
+	[self removeUnifiedInterstitialAdNotification];
+}
+
+/**
+ *  插屏2.0广告将要展示回调
+ *  插屏2.0广告即将展示回调该函数
+ */
+- (void)unifiedInterstitialWillPresentScreen:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s %@",__FUNCTION__,@"Going to present.");
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adWillShow",@"msg":@"插屏广告即将被展示"}];
+}
+
+/**
+ *  插屏2.0广告视图展示成功回调
+ *  插屏2.0广告展示成功回调该函数
+ */
+- (void)unifiedInterstitialDidPresentScreen:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s %@",__FUNCTION__,@"Success Presented.");
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"isPresented",@"msg":@"插屏广告展示了"}];
+
+}
+
+/**
+ *  插屏2.0广告视图展示失败回调
+ *  插屏2.0广告展示失败回调该函数
+ */
+- (void)unifiedInterstitialFailToPresent:(GDTUnifiedInterstitialAd *)unifiedInterstitial error:(NSError *)error {
+	NSLog(@"%s 插屏展示失败 %@",__FUNCTION__,error);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFailed",@"msg":@"插屏广告展示失败了",@"isAdValid":@(unifiedInterstitial.isAdValid)}];
+	if(!unifiedInterstitial.isAdValid) {
+		[self removeUnifiedInterstitialAdNotification];
+	}
+}
+
+/**
+ *  插屏2.0广告展示结束回调
+ *  插屏2.0广告展示结束回调该函数
+ */
+- (void)unifiedInterstitialDidDismissScreen:(GDTUnifiedInterstitialAd *)unifiedInterstitial; {
+	NSLog(@"%s 插屏展示结束",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFinished",@"msg":@"插屏广告展示结束"}];
+}
+
+/**
+ *  当点击下载应用时会调用系统程序打开其它App或者Appstore时回调
+ */
+- (void)unifiedInterstitialWillLeaveApplication:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告打开其他app或者App Store",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"openOtherApp",@"msg":@"插屏广告展示结束"}];
+}
+
+/**
+ *  插屏2.0广告曝光回调
+ */
+- (void)unifiedInterstitialWillExposure:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告 即将曝光 ",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adShowed",@"msg":@"插屏广告即将曝光"}];
+}
+
+/**
+ *  插屏2.0广告点击回调
+ */
+- (void)unifiedInterstitialClicked:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告 被点击了 ",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adClicked",@"msg":@"插屏广告被点击了"}];
+}
+
+/**
+ *  点击插屏2.0广告以后即将弹出全屏广告页
+ */
+- (void)unifiedInterstitialAdWillPresentFullScreenModal:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告即将弹出广告详情页 ",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageWillShow",@"msg":@"插屏广告即将弹出广告详情页"}];
+}
+
+/**
+ *  点击插屏2.0广告以后弹出全屏广告页
+ */
+- (void)unifiedInterstitialAdDidPresentFullScreenModal:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告弹出广告详情页 ",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageShowed",@"msg":@"插屏广告弹出广告详情页"}];
+}
+
+/**
+ *  全屏广告页将要关闭
+ */
+- (void)unifiedInterstitialAdWillDismissFullScreenModal:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告详情页将要关闭 ",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageWillClosed",@"msg":@"插屏广告详情页将要关闭"}];
+}
+
+/**
+ *  全屏广告页被关闭
+ */
+- (void)unifiedInterstitialAdDidDismissFullScreenModal:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s 插屏广告详情页关闭 ",__FUNCTION__);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageClosed",@"msg":@"插屏广告详情页关闭"}];
+}
+
+/**
+ * 插屏2.0视频广告 player 播放状态更新回调
+ */
+- (void)unifiedInterstitialAd:(GDTUnifiedInterstitialAd *)unifiedInterstitial playerStatusChanged:(GDTMediaPlayerStatus)status {
+	NSLog(@"%s",__FUNCTION__);
+	NSLog(@"视频广告状态变更");
+	switch (status) {
+	case GDTMediaPlayerStatusInitial:
+		NSLog(@"视频初始化");
+		break;
+	case GDTMediaPlayerStatusLoading:
+		NSLog(@"视频加载中");
+		break;
+	case GDTMediaPlayerStatusStarted:
+		NSLog(@"视频开始播放");
+		break;
+	case GDTMediaPlayerStatusPaused:
+		NSLog(@"视频暂停");
+		break;
+	case GDTMediaPlayerStatusStoped:
+		NSLog(@"视频停止");
+		break;
+	case GDTMediaPlayerStatusError:
+		NSLog(@"视频播放出错");
+	default:
+		break;
+	}
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUnifiedInterstitialAd",@"eventType":@"videoStatusChange",@"msg":@"插屏广告 视频广告状态变更",@"status": @(status)}];
+}
+
+/**
+ * 插屏2.0视频广告详情页 WillPresent 回调 即将展示
+ */
+- (void)unifiedInterstitialAdViewWillPresentVideoVC:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s %@",__FUNCTION__,@"Going to present.");
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageWillShow",@"msg":@"插屏广告详情页即将被展示"}];
+}
+
+/**
+ * 插屏2.0视频广告详情页 DidPresent 回调 展示
+ */
+- (void)unifiedInterstitialAdViewDidPresentVideoVC:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s %@",__FUNCTION__,@"present.");
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageShowed",@"msg":@"插屏广告详情页展示"}];
+}
+
+/**
+ * 插屏2.0视频广告详情页 WillDismiss 回调 即将关闭
+ */
+- (void)unifiedInterstitialAdViewWillDismissVideoVC:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	NSLog(@"%s %@",__FUNCTION__,@"Going to present.");
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageWillClose",@"msg":@"插屏广告视频广告详情页即将关闭"}];
+}
+
+/**
+ * 插屏2.0视频广告详情页 DidDismiss 回调 关闭
+ */
+- (void)unifiedInterstitialAdViewDidDismissVideoVC:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageClosed",@"msg":@"插屏广告视频广告详情页关闭"}];
+}
 
 @end
