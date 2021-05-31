@@ -13,8 +13,10 @@
 #import "UnifiedNativeAdCustomView.h"
 #import "TMob/GDTUnifiedInterstitialAd.h"
 #import "TMob/GDTUnifiedBannerView.h"
+#import "TMob/GDTNativeExpressAd.h"
+#import "TMob/GDTNativeExpressAdView.h"
 
-@interface HNTMob ()<GDTSplashAdDelegate,GDTUnifiedNativeAdDelegate, GDTUnifiedNativeAdViewDelegate, GDTMediaViewDelegate, GDTUnifiedInterstitialAdDelegate,GDTUnifiedBannerViewDelegate>
+@interface HNTMob ()<GDTSplashAdDelegate,GDTUnifiedNativeAdDelegate, GDTUnifiedNativeAdViewDelegate, GDTMediaViewDelegate, GDTUnifiedInterstitialAdDelegate,GDTUnifiedBannerViewDelegate,GDTNativeExpressAdDelegete>
 //splashAd 开屏
 @property (nonatomic, strong)  GDTSplashAd *splashAd;
 @property (nonatomic,strong) NSString *splashAdType;
@@ -39,6 +41,12 @@
 //banner
 @property (nonatomic, strong) GDTUnifiedBannerView *bannerView;
 @property (nonatomic, strong) NSObject *unifiedBannerViewObserver;
+
+//nativeExpress  模版1.0
+@property (nonatomic, strong) GDTNativeExpressAd *nativeExpressAd;
+@property (nonatomic, strong) NSObject *nativeExpressAdObserver;
+@property (nonatomic, strong) GDTNativeExpressAdView *expressView;
+
 
 @end
 
@@ -518,14 +526,14 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	return _skipButton;
 }
 
-#pragma mark - 贴片广告 GDTUnifiedNativeAdDelegate
+#pragma mark - 信息流广告自渲染 GDTUnifiedNativeAdDelegate
 - (void)gdt_unifiedNativeAdLoaded:(NSArray<GDTUnifiedNativeAdDataObject *> *)unifiedNativeAdDataObjects error:(NSError *)error
 {
 	if (!error && unifiedNativeAdDataObjects.count > 0) {
 		NSLog(@"成功请求到广告数据");
 		self.dataObject = unifiedNativeAdDataObjects[0];
 		NSLog(@"eCPM:%ld eCPMLevel:%@", [self.dataObject eCPM], [self.dataObject eCPMLevel]);
-		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"贴片广告加载成功"}];
+		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功"}];
 		if (self.dataObject.isVideoAd) {
 			[self reloadAd];
 			return;
@@ -556,15 +564,15 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self removeUnifiedNativeAdNotification];
 }
 
-#pragma mark - 贴片广告 GDTMediaViewDelegate
+#pragma mark - 信息流广告自渲染 GDTMediaViewDelegate
 - (void)gdt_mediaViewDidPlayFinished:(GDTMediaView *)mediaView
 {
 	NSLog(@"%s",__FUNCTION__);
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adPlayFinished",@"msg":@"贴片广告视频播放结束"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adPlayFinished",@"msg":@"信息流广告视频播放结束"}];
 	[self closeAd];
 }
 
-#pragma mark - 贴片广告 GDTUnifiedNativeAdViewDelegate
+#pragma mark - 信息流广告自渲染 GDTUnifiedNativeAdViewDelegate
 - (void)gdt_unifiedNativeAdViewDidClick:(GDTUnifiedNativeAdView *)unifiedNativeAdView
 {
 	NSLog(@"%s",__FUNCTION__);
@@ -632,7 +640,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		NSLog(@"视频广告长度为 %ld s", videoDuration);
 	}
 
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"videoStatusChange",@"msg":@"贴片广告 视频广告状态变更",@"userInfo":userInfo,@"status": @(status)}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"videoStatusChange",@"msg":@"信息流广告 视频广告状态变更",@"userInfo":userInfo,@"status": @(status)}];
 }
 
 #pragma mark -- 插屏2.0
@@ -1082,6 +1090,231 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
 	NSLog(@"unified banner will close by user ");
 
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adClosedByUser",@"msg":@"banner被用户关闭"}];
+}
+
+
+#pragma mark 信息流 模版广告1.0
+JS_METHOD(loadNativeExpressAd:(UZModuleMethodContext *)context){
+
+	NSDictionary *params = context.param;
+	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
+	NSString *fixedOn = [params stringValueForKey:@"fixedOn" defaultValue:nil];
+	BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
+	float x = [params floatValueForKey:@"x" defaultValue:0];
+	float y = [params floatValueForKey:@"y" defaultValue:0];
+	float width  = [params floatValueForKey:@"width" defaultValue:414];
+	float height  = [params floatValueForKey:@"height" defaultValue:50];
+
+	self.nativeExpressAd = [[GDTNativeExpressAd alloc] initWithPlacementId:adId
+	                        adSize:CGSizeMake(width,height)];
+	self.nativeExpressAd.delegate = self;
+	[self.nativeExpressAd loadAd:1];
+
+	if(!self.nativeExpressAdObserver) {
+		__weak typeof(self) _self = self;
+		self.nativeExpressAdObserver = [[NSNotificationCenter defaultCenter] addObserverForName:@"loadNativeExpressAdObserver" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification * _Nonnull note) {
+		                                        NSLog(@"接收到loadNativeExpressAdObserver通知，%@",note.object);
+		                                        __strong typeof(_self) self = _self;
+		                                        if(!self) return;
+		                                        if([[note.object valueForKey:@"isNativeExpressAd"] boolValue]) {
+								if(self->_expressView) {
+									[self addSubview:self->_expressView fixedOn:fixedOn fixed:fixed];
+									self->_expressView.controller = self.viewController;
+									self->_expressView.frame = CGRectMake(x, y, self->_expressView.bounds.size.width, self->_expressView.bounds.size.height);
+									[self->_expressView render];
+								}else{
+									[context callbackWithRet:@{@"code":@0,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"doShow",@"msg":@"没有可以添加的信息流界面"} err:nil delete:YES];
+									[self removeNativeExpressAdObserver];
+									return;
+
+								}
+							}
+		                                        [context callbackWithRet:note.object err:nil delete:NO];
+						}];
+	}
+	[context callbackWithRet:@{@"code":@1,@"nativeExpressAdType":@"loadNativeExpressAd",@"eventType":@"doLoad",@"msg":@"信息流广告加载命令执行成功"} err:nil delete:NO];
+
+
+}
+JS_METHOD(closeNativeExpressAd:(UZModuleMethodContext *)context){
+	[self removeNativeExpressAdObserver];
+	dispatch_async(dispatch_get_main_queue(), ^{
+        [self->_expressView removeFromSuperview];
+        self->_expressView = nil;
+	});
+	[context callbackWithRet:@{@"code":@1,@"nativeExpressAdType":@"closeNativeExpressAd",@"eventType":@"doClose",@"msg":@"广告关闭命令执行成功"} err:nil delete:YES];
+}
+#pragma mark 信息流 模版1.0 action
+-(void) removeNativeExpressAdObserver {
+	if(self.nativeExpressAdObserver) {
+		NSLog(@"移除通知监听");
+		[[NSNotificationCenter defaultCenter] removeObserver:self.nativeExpressAdObserver name:@"loadNativeExpressAdObserver" object:nil];
+		self.nativeExpressAdObserver = nil;
+	}
+//    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"loadNativeExpressAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"}];
+
+}
+
+
+#pragma mark 信息流 模版广告 1.0 GDTNativeExpressAdDelegete
+
+/**
+ * 拉取原生模板广告成功
+ */
+- (void)nativeExpressAdSuccessToLoad:(GDTNativeExpressAd *)nativeExpressAd views:(NSArray<__kindof GDTNativeExpressAdView *> *)views {
+	if (views.count) {
+		_expressView = (GDTNativeExpressAdView *)views[0];
+		NSLog(@"eCPM:%ld eCPMLevel:%@", [_expressView eCPM], [_expressView eCPMLevel]);
+		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"loadNativeExpressAd",@"eventType":@"adLoaded",@"isNativeExpressAd":@YES,@"msg":@"广告加载成功"}];
+	}else{
+		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@0,@"nativeExpressAdType":@"loadNativeExpressAd",@"eventType":@"adLoadedError",@"msg":@"广告加载数据为空"}];
+
+		[self removeNativeExpressAdObserver];
+	}
+}
+
+/**
+ * 拉取原生模板广告失败
+ */
+- (void)nativeExpressAdFailToLoad:(GDTNativeExpressAd *)nativeExpressAd error:(NSError *)error {
+	NSLog(@"nativeExpressAd load failed %@",error);
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@0,@"nativeExpressAdType":@"loadNativeExpressAd",@"eventType":@"adLoadedFailed",@"msg":@"广告加载失败",@"userInfo":error.userInfo}];
+
+	[self removeNativeExpressAdObserver];
+}
+
+/**
+ * 原生模板广告渲染成功, 此时的 nativeExpressAdView.size.height 根据 size.width 完成了动态更新。
+ */
+- (void)nativeExpressAdViewRenderSuccess:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adRendered",@"msg":@"广告渲染成功"}];
+}
+
+/**
+ * 原生模板广告渲染失败
+ */
+- (void)nativeExpressAdViewRenderFail:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@0,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adRenderFaild",@"msg":@"广告渲染失败"}];
+	//TODO 需要确认是否清理掉 异步通知
+	[self removeNativeExpressAdObserver];
+}
+
+/**
+ * 原生模板广告曝光回调
+ */
+- (void)nativeExpressAdViewExposure:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adShowed",@"msg":@"广告曝光了"}];
+}
+
+/**
+ * 原生模板广告点击回调
+ */
+- (void)nativeExpressAdViewClicked:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adClicked",@"msg":@"广告被点击了"}];
+}
+
+/**
+ * 原生模板广告被关闭
+ */
+- (void)nativeExpressAdViewClosed:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adClosed",@"msg":@"广告关闭了"}];
+	[self removeNativeExpressAdObserver];
+	[_expressView removeFromSuperview];
+	_expressView = nil;
+}
+
+/**
+ * 点击原生模板广告以后即将弹出全屏广告页
+ */
+- (void)nativeExpressAdViewWillPresentScreen:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adPageWillShow",@"msg":@"广告详情页即将打开"}];
+}
+
+/**
+ * 点击原生模板广告以后弹出全屏广告页
+ */
+- (void)nativeExpressAdViewDidPresentScreen:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adPageShow",@"msg":@"广告详情页打开"}];
+}
+
+/**
+ * 全屏广告页将要关闭
+ */
+- (void)nativeExpressAdViewWillDismissScreen:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adPageWillClose",@"msg":@"广告详情页即将关闭"}];
+}
+
+/**
+ * 全屏广告页将要关闭
+ */
+- (void)nativeExpressAdViewDidDismissScreen:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adPageClosed",@"msg":@"广告详情页关闭"}];
+}
+
+/**
+ * 详解:当点击应用下载或者广告调用系统程序打开时调用
+ */
+- (void)nativeExpressAdViewApplicationWillEnterBackground:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"enterBackground",@"msg":@"广告进入后台"}];
+}
+
+/**
+ * 原生模板视频广告 player 播放状态更新回调
+ */
+- (void)nativeExpressAdView:(GDTNativeExpressAdView *)nativeExpressAdView playerStatusChanged:(GDTMediaPlayerStatus)status {
+	NSLog(@"%s",__FUNCTION__);
+	NSLog(@"视频广告状态变更");
+	switch (status) {
+	case GDTMediaPlayerStatusInitial:
+		NSLog(@"视频初始化");
+		break;
+	case GDTMediaPlayerStatusLoading:
+		NSLog(@"视频加载中");
+		break;
+	case GDTMediaPlayerStatusStarted:
+		NSLog(@"视频开始播放");
+		break;
+	case GDTMediaPlayerStatusPaused:
+		NSLog(@"视频暂停");
+		break;
+	case GDTMediaPlayerStatusStoped:
+		NSLog(@"视频停止");
+		break;
+	case GDTMediaPlayerStatusError:
+		NSLog(@"视频播放出错");
+	default:
+		break;
+	}
+
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"videoStatusChange",@"msg":@"广告 视频广告状态变更",@"status": @(status)}];
+}
+
+/**
+ * 原生视频模板详情页 WillPresent 回调
+ */
+- (void)nativeExpressAdViewWillPresentVideoVC:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adVideoPageWillShow",@"msg":@"视频模版详情页即将打开"}];
+}
+
+/**
+ * 原生视频模板详情页 DidPresent 回调
+ */
+- (void)nativeExpressAdViewDidPresentVideoVC:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adVideoPageShow",@"msg":@"视频模版详情页打开"}];
+}
+
+/**
+ * 原生视频模板详情页 WillDismiss 回调
+ */
+- (void)nativeExpressAdViewWillDismissVideoVC:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adVideoPageWillClose",@"msg":@"视频模版详情页即将关闭"}];
+}
+
+/**
+ * 原生视频模板详情页 DidDismiss 回调
+ */
+- (void)nativeExpressAdViewDidDismissVideoVC:(GDTNativeExpressAdView *)nativeExpressAdView {
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadNativeExpressAdObserver" object:@{@"code":@1,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"adVideoPageClose",@"msg":@"视频模版详情页关闭"}];
 }
 
 @end
