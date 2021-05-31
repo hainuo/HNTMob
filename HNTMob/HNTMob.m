@@ -658,7 +658,7 @@ JS_METHOD(loadUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 					}else{
 						[self->_interstitialAd loadAd];
 					}
-             });
+				});
 	 }];
 
 	if(!self.unifiedInterstitialAdObserver) {
@@ -715,7 +715,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 	NSLog(@"%s %@",__FUNCTION__,@"Load Success." );
 	NSLog(@"eCPM:%ld eCPMLevel:%@", [unifiedInterstitial eCPM], [unifiedInterstitial eCPMLevel]);
 	NSLog(@"videoDuration:%lf isVideo: %@", unifiedInterstitial.videoDuration, @(unifiedInterstitial.isVideoAd));
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoaded",@"msg":@"插屏广告加载成功",@"isVideoAd":@(unifiedInterstitial.isVideoAd),@"eCPM": @([unifiedInterstitial eCPM]),@"eCPMLevel":[unifiedInterstitial eCPMLevel]?:@"",@"videoDuration":@(unifiedInterstitial.videoDuration)}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoaded",@"msg":@"插屏广告加载成功",@"isVideoAd":@(unifiedInterstitial.isVideoAd),@"eCPM": @([unifiedInterstitial eCPM]),@"eCPMLevel":[unifiedInterstitial eCPMLevel]?:@"",@"videoDuration":@(unifiedInterstitial.videoDuration)}];
 }
 
 /**

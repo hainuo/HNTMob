@@ -10,7 +10,6 @@
 		FC74A6552636A5D8003D6363 /* UnifiedNativeAdCustomView.m in Sources */ = {isa = PBXBuildFile; fileRef = FC74A6542636A5D8003D6363 /* UnifiedNativeAdCustomView.m */; };
 		FCA6E5FB2635107F00208C5C /* HNTMob.m in Sources */ = {isa = PBXBuildFile; fileRef = FCA6E5FA2635107F00208C5C /* HNTMob.m */; };
 		FCA6E5FC2635107F00208C5C /* HNTMob.h in Copy Files */ = {isa = PBXBuildFile; fileRef = FCA6E5F92635107F00208C5C /* HNTMob.h */; };
-		FCA6E6062635112900208C5C /* libGDTMobSDK.a in Frameworks */ = {isa = PBXBuildFile; fileRef = FCA6E6052635112900208C5C /* libGDTMobSDK.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -43,7 +42,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FCA6E6062635112900208C5C /* libGDTMobSDK.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
