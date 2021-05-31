@@ -12,8 +12,9 @@
 #import "TMob/GDTUnifiedNativeAd.h"
 #import "UnifiedNativeAdCustomView.h"
 #import "TMob/GDTUnifiedInterstitialAd.h"
+#import "TMob/GDTUnifiedBannerView.h"
 
-@interface HNTMob ()<GDTSplashAdDelegate,GDTUnifiedNativeAdDelegate, GDTUnifiedNativeAdViewDelegate, GDTMediaViewDelegate, GDTUnifiedInterstitialAdDelegate>
+@interface HNTMob ()<GDTSplashAdDelegate,GDTUnifiedNativeAdDelegate, GDTUnifiedNativeAdViewDelegate, GDTMediaViewDelegate, GDTUnifiedInterstitialAdDelegate,GDTUnifiedBannerViewDelegate>
 //splashAd 开屏
 @property (nonatomic, strong)  GDTSplashAd *splashAd;
 @property (nonatomic,strong) NSString *splashAdType;
@@ -35,6 +36,9 @@
 @property (nonatomic, strong) GDTUnifiedInterstitialAd *interstitialAd;
 @property (nonatomic, strong) NSObject *unifiedInterstitialAdObserver;
 
+//banner
+@property (nonatomic, strong) GDTUnifiedBannerView *bannerView;
+@property (nonatomic, strong) NSObject *unifiedBannerViewObserver;
 
 @end
 
@@ -758,6 +762,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFailed",@"msg":@"插屏广告展示失败了",@"isAdValid":@(unifiedInterstitial.isAdValid)}];
 	if(!unifiedInterstitial.isAdValid) {
 		[self removeUnifiedInterstitialAdNotification];
+        _interstitialAd = nil;
 	}
 }
 
@@ -768,6 +773,8 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 - (void)unifiedInterstitialDidDismissScreen:(GDTUnifiedInterstitialAd *)unifiedInterstitial; {
 	NSLog(@"%s 插屏展示结束",__FUNCTION__);
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFinished",@"msg":@"插屏广告展示结束"}];
+    [self removeUnifiedInterstitialAdNotification];
+    _interstitialAd = nil;
 }
 
 /**
@@ -775,7 +782,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedInterstitialWillLeaveApplication:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
 	NSLog(@"%s 插屏广告打开其他app或者App Store",__FUNCTION__);
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"openOtherApp",@"msg":@"插屏广告展示结束"}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"openOtherApp",@"msg":@"插屏打开其他应用"}];
 }
 
 /**
@@ -824,6 +831,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 - (void)unifiedInterstitialAdDidDismissFullScreenModal:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
 	NSLog(@"%s 插屏广告详情页关闭 ",__FUNCTION__);
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageClosed",@"msg":@"插屏广告详情页关闭"}];
+    
 }
 
 /**
@@ -889,6 +897,191 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedInterstitialAdViewDidDismissVideoVC:(GDTUnifiedInterstitialAd *)unifiedInterstitial {
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@1,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"adPageClosed",@"msg":@"插屏广告视频广告详情页关闭"}];
+}
+
+#pragma mark  banner 广告  HNTMob GDTUnifiedBannerView
+
+JS_METHOD(loadBannerAd:(UZModuleMethodContext *)context){
+	NSDictionary *params = context.param;
+	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
+
+	BOOL animationSwitch = [params boolValueForKey:@"animationSwitch" defaultValue:YES];
+	int refreshInterval = [params intValueForKey:@"refreshInterval" defaultValue:0];
+	NSDictionary *ret = [params dictValueForKey:@"ret" defaultValue:@{@"x":@0,@"y":@0,@"width":@375,@"height":@100}];
+
+	BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
+	NSString *fixedOn = [params stringValueForKey:@"fixedOn" defaultValue:nil];
+
+	float x = [ret floatValueForKey:@"x" defaultValue:0];
+	float y = [ret floatValueForKey:@"y" defaultValue:0];
+	float width = [ret floatValueForKey:@"width" defaultValue:375];
+	float height = [ret floatValueForKey:@"height" defaultValue:100];
+	if(refreshInterval>0 && refreshInterval<30) {
+		refreshInterval = 30;
+    }else if (refreshInterval>120){
+        refreshInterval = 120;
+    }
+	if (_bannerView.superview) {
+		[self removeBannerView];
+	}
+
+
+	CGRect rect = CGRectMake(x, y, width, height);
+	_bannerView = [[GDTUnifiedBannerView alloc]
+	               initWithFrame:rect
+	               placementId:adId
+	               viewController:self.viewController];
+	_bannerView.delegate = self;
+
+
+	_bannerView.accessibilityIdentifier = @"banner_ad";
+	_bannerView.animated = animationSwitch;
+	_bannerView.autoSwitchInterval = refreshInterval;
+
+	[self addSubview:self.bannerView fixedOn:fixedOn fixed:fixed];
+
+	[self.bannerView loadAdAndShow];
+
+	if(!self.unifiedBannerViewObserver) {
+		__weak typeof(self) _self = self;
+		self.unifiedBannerViewObserver = [[NSNotificationCenter defaultCenter] addObserverForName:@"loadBannerAdObserver" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification * _Nonnull note) {
+		                                          NSLog(@"接收到loadBannerAdObserver通知，%@",note.object);
+		                                          __strong typeof(_self) self = _self;
+		                                          if(!self) return;
+		                                          [context callbackWithRet:note.object err:nil delete:NO];
+						  }];
+	}
+	[context callbackWithRet:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"eventType":@"doLoad",@"msg":@"banner广告加载命令执行成功"} err:nil delete:NO];
+}
+JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
+    
+//    if (_bannerView.superview) {
+//        [_bannerView removeFromSuperview];
+//        _bannerView = nil;
+//    }
+    [self removeBannerView];
+    [context callbackWithRet:@{@"code":@1,@"bannerAdType":@"CloseBannerAd",@"eventType":@"doLoad",@"msg":@"banner广告关闭命令执行成功"} err:nil delete:YES];
+}
+
+#pragma mark banner action GDTUnifiedBannerView
+-(void) removeBannerView {
+    [self removeUnifiedBannerViewObserver];
+    NSLog(@" 移除banner广告 ");
+
+     // 同步到主线程
+     dispatch_async(dispatch_get_main_queue(), ^{
+            [self->_bannerView removeFromSuperview];
+            self->_bannerView = nil;
+        });
+}
+
+-(void) removeUnifiedBannerViewObserver {
+	if(self.unifiedBannerViewObserver) {
+		NSLog(@"移除通知监听");
+		[[NSNotificationCenter defaultCenter] removeObserver:self.unifiedBannerViewObserver name:@"loadBannerAdObserver" object:nil];
+		self.unifiedBannerViewObserver = nil;
+	}
+//    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"}];
+
+}
+
+#pragma mark delegate
+/**
+ *  请求广告条数据成功后调用
+ *  当接收服务器返回的广告数据成功后调用该函数
+ */
+- (void)unifiedBannerViewDidLoad:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"%s",__FUNCTION__);
+    NSLog(@"unified banner did load");
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"eventType":@"adLoaded",@"msg":@"广告加载成功"}];
+}
+
+/**
+ *  请求广告条数据失败后调用
+ *  当接收服务器返回的广告数据失败后调用该函数
+ */
+- (void)unifiedBannerViewFailedToLoad:(GDTUnifiedBannerView *)unifiedBannerView error:(NSError *)error {
+    
+    NSLog(@"unified banner did load failed");
+    NSLog(@"error %@",error);
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@0,@"bannerAdType":@"loadBannerAd",@"eventType":@"adLoadFaild",@"msg":@"广告加载失败",@"userInfo":error.userInfo}];
+    [self removeBannerView];
+    [self removeUnifiedBannerViewObserver];
+    
+}
+
+/**
+ *  banner2.0曝光回调
+ */
+- (void)unifiedBannerViewWillExpose:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner will expose ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adWillShow",@"msg":@"广告即将曝光"}];
+    
+}
+
+/**
+ *  banner2.0点击回调
+ */
+- (void)unifiedBannerViewClicked:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner clicked ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adClicked",@"msg":@"广告被点击了"}];
+    
+}
+
+/**
+ *  banner2.0广告点击以后即将弹出全屏广告页
+ */
+- (void)unifiedBannerViewWillPresentFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner will open full ad page ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageWillShow",@"msg":@"广告详情页即将打开"}];
+}
+
+/**
+ *  banner2.0广告点击以后弹出全屏广告页完毕
+ */
+- (void)unifiedBannerViewDidPresentFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner did open full ad page ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageShowed",@"msg":@"广告详情页打开了"}];
+}
+
+/**
+ *  全屏广告页即将被关闭
+ */
+- (void)unifiedBannerViewWillDismissFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner will close full ad page ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageWillClosed",@"msg":@"广告详情页即将关闭"}];
+}
+
+/**
+ *  全屏广告页已经被关闭
+ */
+- (void)unifiedBannerViewDidDismissFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner did close full ad page ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageClosed",@"msg":@"广告详情页关闭"}];
+}
+
+/**
+ *  当点击应用下载或者广告调用系统程序打开
+ */
+- (void)unifiedBannerViewWillLeaveApplication:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner will close full ad page ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"openOtherApp",@"msg":@"banner打开其他app"}];
+}
+
+/**
+ *  banner2.0被用户关闭时调用
+ */
+- (void)unifiedBannerViewWillClose:(GDTUnifiedBannerView *)unifiedBannerView {
+    NSLog(@"unified banner will close by user ");
+    
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adClosedByUser",@"msg":@"banner被用户关闭"}];
 }
 
 @end
