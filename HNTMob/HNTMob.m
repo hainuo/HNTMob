@@ -1123,7 +1123,7 @@ JS_METHOD(loadNativeExpressAd:(UZModuleMethodContext *)context){
 									self->_expressView.frame = CGRectMake(x, y, self->_expressView.bounds.size.width, self->_expressView.bounds.size.height);
 									[self->_expressView render];
 								}else{
-									[context callbackWithRet:@{@"code":@0,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"doShow",@"msg":@"没有可以添加的信息流界面"} err:nil delete:YES];
+									[context callbackWithRet:@{@"code":@0,@"nativeExpressAdType":@"showNativeExpressAd",@"eventType":@"doShowFaild",@"msg":@"没有可以添加的信息流界面"} err:nil delete:YES];
 									[self removeNativeExpressAdObserver];
 									return;
 
