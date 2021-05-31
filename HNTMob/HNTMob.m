@@ -960,7 +960,7 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
 //        _bannerView = nil;
 //    }
 	[self removeBannerView];
-	[context callbackWithRet:@{@"code":@1,@"bannerAdType":@"CloseBannerAd",@"eventType":@"doClose",@"msg":@"banner广告关闭命令执行成功"} err:nil delete:YES];
+	[context callbackWithRet:@{@"code":@1,@"bannerAdType":@"closeBannerAd",@"eventType":@"doClose",@"msg":@"banner广告关闭命令执行成功"} err:nil delete:YES];
 }
 
 #pragma mark banner action GDTUnifiedBannerView
