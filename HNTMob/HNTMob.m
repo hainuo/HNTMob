@@ -964,7 +964,7 @@ JS_METHOD(loadBannerAd:(UZModuleMethodContext *)context){
 	_bannerView.delegate = self;
 
 
-	_bannerView.accessibilityIdentifier = @"banner_ad";
+	_bannerView.accessibilityIdentifier = [NSString stringWithFormat:@"banner_ad_%@",adId];
 	_bannerView.animated = animationSwitch;
 	_bannerView.autoSwitchInterval = refreshInterval;
 
@@ -975,10 +975,14 @@ JS_METHOD(loadBannerAd:(UZModuleMethodContext *)context){
 	if(!self.unifiedBannerViewObserver) {
 		__weak typeof(self) _self = self;
 		self.unifiedBannerViewObserver = [[NSNotificationCenter defaultCenter] addObserverForName:@"loadBannerAdObserver" object:nil queue:NSOperationQueue.mainQueue usingBlock:^(NSNotification * _Nonnull note) {
-		                                          NSLog(@"接收到loadBannerAdObserver通知，%@",note.object);
-		                                          __strong typeof(_self) self = _self;
-		                                          if(!self) return;
-		                                          [context callbackWithRet:note.object err:nil delete:NO];
+		                                          NSString *placeId = [note.object stringValueForKey:@"adId" defaultValue:nil];
+		                                          if([placeId isEqualToString:[NSString stringWithFormat:@"banner_ad_%@",adId]]) {
+								  NSLog(@"接收到loadBannerAdObserver通知，%@",note.object);
+								  __strong typeof(_self) self = _self;
+								  if(!self) return;
+
+								  [context callbackWithRet:note.object err:nil delete:NO];
+							  }
 						  }];
 	}
 	[context callbackWithRet:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"eventType":@"doLoad",@"msg":@"banner广告加载命令执行成功"} err:nil delete:NO];
@@ -1023,7 +1027,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
 - (void)unifiedBannerViewDidLoad:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"unified banner did load");
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"eventType":@"adLoaded",@"msg":@"广告加载成功"}];
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"adId":adId,@"eventType":@"adLoaded",@"msg":@"广告加载成功"}];
 }
 
 /**
@@ -1034,7 +1039,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
 
 	NSLog(@"unified banner did load failed");
 	NSLog(@"error %@",error);
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@0,@"bannerAdType":@"loadBannerAd",@"eventType":@"adLoadFaild",@"msg":@"广告加载失败",@"userInfo":error.userInfo}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@0,@"bannerAdType":@"loadBannerAd",@"adId":adId,@"eventType":@"adLoadFaild",@"msg":@"广告加载失败",@"userInfo":error.userInfo}];
 	[self removeBannerView];
 	[self removeUnifiedBannerViewObserver];
 
@@ -1045,8 +1052,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillExpose:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will expose ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adWillShow",@"msg":@"广告即将曝光"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adWillShow",@"msg":@"广告即将曝光"}];
 
 }
 
@@ -1055,8 +1063,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewClicked:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner clicked ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adClicked",@"msg":@"广告被点击了"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adClicked",@"msg":@"广告被点击了"}];
 
 }
 
@@ -1065,8 +1074,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillPresentFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will open full ad page ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageWillShow",@"msg":@"广告详情页即将打开"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageWillShow",@"msg":@"广告详情页即将打开"}];
 }
 
 /**
@@ -1074,8 +1084,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewDidPresentFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner did open full ad page ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageShowed",@"msg":@"广告详情页打开了"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageShowed",@"msg":@"广告详情页打开了"}];
 }
 
 /**
@@ -1083,8 +1094,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillDismissFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will close full ad page ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageWillClosed",@"msg":@"广告详情页即将关闭"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageWillClosed",@"msg":@"广告详情页即将关闭"}];
 }
 
 /**
@@ -1092,8 +1104,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewDidDismissFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner did close full ad page ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adPageClosed",@"msg":@"广告详情页关闭"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageClosed",@"msg":@"广告详情页关闭"}];
 }
 
 /**
@@ -1101,8 +1114,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillLeaveApplication:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will close full ad page ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"openOtherApp",@"msg":@"banner打开其他app"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"openOtherApp",@"msg":@"banner打开其他app"}];
 }
 
 /**
@@ -1110,8 +1124,9 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillClose:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will close by user ");
-
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"eventType":@"adClosedByUser",@"msg":@"banner被用户关闭"}];
+    
+    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adClosedByUser",@"msg":@"banner被用户关闭"}];
 }
 
 
@@ -1162,16 +1177,16 @@ JS_METHOD(loadNativeExpressAd:(UZModuleMethodContext *)context){
 
 }
 JS_METHOD(closeNativeExpressAd:(UZModuleMethodContext *)context){
-    
-    if(_expressView.superview){
-        dispatch_async(dispatch_get_main_queue(), ^{
-            [self->_expressView removeFromSuperview];
-            self->_expressView=nil;
-            NSLog(@" 移除 expressView");
-        });
-    }
+
+	if(_expressView.superview) {
+		dispatch_async(dispatch_get_main_queue(), ^{
+			[self->_expressView removeFromSuperview];
+			self->_expressView=nil;
+			NSLog(@" 移除 expressView");
+		});
+	}
 	[self removeNativeExpressAdObserver];
-   
+
 	[context callbackWithRet:@{@"code":@1,@"nativeExpressAdType":@"closeNativeExpressAd",@"eventType":@"doClose",@"msg":@"广告关闭命令执行成功"} err:nil delete:YES];
 }
 #pragma mark 信息流 模版1.0 action
@@ -1197,10 +1212,10 @@ JS_METHOD(closeNativeExpressAd:(UZModuleMethodContext *)context){
 	NSLog(@"adId %@",[nativeExpressAd placementId]);
 
 	if (views.count) {
-        if(_expressView ){
-            [_expressView removeFromSuperview];
-            _expressView = nil;
-        }
+		if(_expressView ) {
+			[_expressView removeFromSuperview];
+			_expressView = nil;
+		}
 		_expressView = (GDTNativeExpressAdView *)views[0];
 		_expressView.adId = adId;
 		NSLog(@"eCPM:%ld eCPMLevel:%@", [_expressView eCPM], [_expressView eCPMLevel]);
