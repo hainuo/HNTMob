@@ -242,7 +242,7 @@ JS_METHOD_SYNC(showSplashAd:(UZModuleMethodContext *)context){
 		eventType = @"adShowFailed";
 		msg = @"开屏广告素材显示失败";
 	}
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadSplashAdObserver" object:@{@"code":@0,@"splashAdType":self.splashAdType,@"eventType":eventType,@"msg":msg}];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadSplashAdObserver" object:@{@"code":@0,@"splashAdType":self.splashAdType,@"eventType":eventType,@"userInfo":error.userInfo,@"msg":msg}];
 	[self removeSplashNotification];
 	self.splashAdType = nil;
 }
@@ -618,7 +618,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		NSLog(@"成功请求到广告数据");
 		self.dataObject = unifiedNativeAdDataObjects[0];
 		NSLog(@"eCPM:%ld eCPMLevel:%@", [self.dataObject eCPM], [self.dataObject eCPMLevel]);
-		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功"}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功",@"userInfo":error.userInfo}];
 		if (self.dataObject.isVideoAd) {
 			[self reloadAd];
 			return;
@@ -628,7 +628,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		}
 	}
 
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo,@"userInfo":error.userInfo}];
 	if (error.code == 5004) {
 		NSLog(@"没匹配的广告，禁止重试，否则影响流量变现效果");
 	} else if (error.code == 5005) {
@@ -734,29 +734,37 @@ JS_METHOD(loadUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
 //    NSString *fixedOn  = [params stringValueForKey:@"fixedOn" defaultValue:nil];
 //    NSDictionary *rect = [params dictValueForKey:@"rect" defaultValue:@{}];
-	BOOL isFullScreen = [params boolValueForKey:@"isFullScreen" defaultValue:YES];
+	BOOL isFullScreen = [params boolValueForKey:@"isFullAd" defaultValue:YES];
 	NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
 	NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
+    
+    BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:NO];
+    BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:NO];
+    BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:NO];
+    
 //    BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
 	if (_interstitialAd) {
 		_interstitialAd.delegate = nil;
 	}
 	_interstitialAd = [[GDTUnifiedInterstitialAd alloc] initWithPlacementId:adId];
 	_interstitialAd.delegate = self;
-	_interstitialAd.videoMuted = NO;
+	_interstitialAd.videoMuted = videoMuted;
+    _interstitialAd.detailPageVideoMuted = videoDetailPageVideoMuted;
+    _interstitialAd.videoAutoPlayOnWWAN = videoAutoPlay;
 	_interstitialAd.minVideoDuration = minVideoDuration;
 	_interstitialAd.maxVideoDuration = maxVideoDuration; // 如果需要设置视频最大时长，可以通过这个参数来进行设置
-	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
-	[waitQueue addOperationWithBlock:^{
-	         // 同步到主线程
-	         dispatch_async(dispatch_get_main_queue(), ^{
+    NSLog(@"fullScreen %@",isFullScreen?@1:@0);
+//	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
+//	[waitQueue addOperationWithBlock:^{
+//	         // 同步到主线程
+//	         dispatch_async(dispatch_get_main_queue(), ^{
 					if(isFullScreen) {
-						[self->_interstitialAd loadFullScreenAd];
+						[self.interstitialAd loadFullScreenAd];
 					}else{
-						[self->_interstitialAd loadAd];
+						[self.interstitialAd loadAd];
 					}
-				});
-	 }];
+//				});
+//	 }];
 
 	if(!self.unifiedInterstitialAdObserver) {
 		__weak typeof(self) _self = self;
@@ -774,7 +782,7 @@ JS_METHOD(loadUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 	NSDictionary *params = context.param;
 
-	BOOL isFullScreen = [params boolValueForKey:@"isFullScreen" defaultValue:YES];
+	BOOL isFullScreen = [params boolValueForKey:@"isFullAd" defaultValue:YES];
 	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
 	[waitQueue addOperationWithBlock:^{
 	         // 同步到主线程
@@ -822,7 +830,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 - (void)unifiedInterstitialFailToLoadAd:(GDTUnifiedInterstitialAd *)unifiedInterstitial error:(NSError *)error {
 	NSLog(@"%s Error : %@",__FUNCTION__,error);
 	NSLog(@"interstitial fail to load, Error : %@",error);
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoadFailed",@"msg":@"插屏广告加载失败"}];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoadFailed",@"msg":@"插屏广告加载失败",@"userInfo":error.userInfo}];
 	[self removeUnifiedInterstitialAdNotification];
 }
 
@@ -852,7 +860,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedInterstitialFailToPresent:(GDTUnifiedInterstitialAd *)unifiedInterstitial error:(NSError *)error {
 	NSLog(@"%s 插屏展示失败 %@",__FUNCTION__,error);
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFailed",@"msg":@"插屏广告展示失败了",@"isAdValid":@(unifiedInterstitial.isAdValid)}];
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFailed",@"msg":@"插屏广告展示失败了",@"userInfo":error.userInfo,@"isAdValid":@(unifiedInterstitial.isAdValid)}];
 	if(!unifiedInterstitial.isAdValid) {
 		[self removeUnifiedInterstitialAdNotification];
 		_interstitialAd = nil;
@@ -1209,7 +1217,7 @@ JS_METHOD(loadNativeExpressAd:(UZModuleMethodContext *)context){
     NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
     NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
     BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:YES];
-    BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:YES];
+    BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:NO];
     BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:YES];
     
 	self.nativeExpressAd = [[GDTNativeExpressAd alloc] initWithPlacementId:adId
