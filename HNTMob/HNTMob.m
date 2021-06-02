@@ -1204,10 +1204,23 @@ JS_METHOD(loadNativeExpressAd:(UZModuleMethodContext *)context){
 	float y = [params floatValueForKey:@"y" defaultValue:0];
 	float width  = [params floatValueForKey:@"width" defaultValue:414];
 	float height  = [params floatValueForKey:@"height" defaultValue:50];
-
+    
+    
+    NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
+    NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
+    BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:YES];
+    BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:YES];
+    BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:YES];
+    
 	self.nativeExpressAd = [[GDTNativeExpressAd alloc] initWithPlacementId:adId
 	                        adSize:CGSizeMake(width,height)];
 	self.nativeExpressAd.delegate = self;
+    self.nativeExpressAd.maxVideoDuration = maxVideoDuration;
+    self.nativeExpressAd.minVideoDuration = minVideoDuration;
+    self.nativeExpressAd.videoMuted = videoMuted;
+    self.nativeExpressAd.detailPageVideoMuted = videoDetailPageVideoMuted;
+    self.nativeExpressAd.videoAutoPlayOnWWAN = videoAutoPlay;
+    
 	[self.nativeExpressAd loadAd:1];
 
 	if(!self.nativeExpressAdObserver) {
