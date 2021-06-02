@@ -49,6 +49,7 @@ static void *nl_sqlite_adId_key = &nl_sqlite_adId_key;
 @property (nonatomic, strong) GDTUnifiedNativeAdDataObject *dataObject;
 @property (nonatomic, strong) UILabel *countdownLabel;
 @property (nonatomic, strong) UIButton *skipButton;
+@property (nonatomic, strong) UIView *skipButtonView;
 @property (nonatomic, strong) NSTimer *timer;
 
 //UnifiedIterstitialAd //插屏2.0
@@ -117,6 +118,7 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 		[ret setValue:@"appId注册失败" forKey:@"msg"];
 		[ret setValue:[GDTSDKConfig sdkVersion] forKey:@"version"];
 	}
+    usleep(500);
 	return ret;
 }
 
@@ -336,6 +338,9 @@ JS_METHOD_SYNC(showSplashAd:(UZModuleMethodContext *)context){
 
 #pragma mark - 贴片广告 HNTMob unifiedNativeAd
 JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
+    
+    [self closeAd];
+    
 	NSDictionary *params = context.param;
 	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
 	NSString *fixedOn  = [params stringValueForKey:@"fixedOn" defaultValue:nil];
@@ -357,7 +362,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 //    [self addSubview:frameView fixedOn:fixedOn fixed:fixed];
 
 	self.videoConfig = [[GDTVideoConfig alloc] init];
-	self.videoConfig.videoMuted = NO;
+	self.videoConfig.videoMuted = YES;
 	self.videoConfig.autoPlayPolicy = GDTVideoAutoPlayPolicyAlways;
 	self.videoConfig.userControlEnable = YES;
 	self.videoConfig.autoResumeEnable = NO;
@@ -374,7 +379,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self.unifiedNativeAd setVastClassName:@"IMAGDT_VASTVideoAdAdapter"]; // 如果需要支持 VAST 广告，拉取广告前设置
 
 	[self.unifiedNativeAd loadAdWithAdCount:1];
-
+    self.videoContainerView.frame = CGRectMake(x, y, width, height);
 	[self addSubview:self.videoContainerView fixedOn:fixedOn fixed:fixed];
 	// 播放器容器
 //    self.videoContainerView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -383,7 +388,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 //    [self.videoContainerView.rightAnchor constraintEqualToAnchor:view.rightAnchor].active = YES;
 //    [self.videoContainerView.topAnchor constraintEqualToAnchor:view.topAnchor].active = YES;
 //    [self.videoContainerView.heightAnchor constraintEqualToAnchor:self.videoContainerView.widthAnchor multiplier:9/16.0].active = YES;
-	[self view:self.videoContainerView addConstraintsWithRect:rect];
+//	[self view:self.videoContainerView addConstraintsWithRect:rect];
 
 	[self.videoContainerView addSubview:self.nativeAdCustomView];
 	// 贴片广告布局
@@ -392,32 +397,62 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self.nativeAdCustomView.rightAnchor constraintEqualToAnchor:self.videoContainerView.rightAnchor].active = YES;
 	[self.nativeAdCustomView.topAnchor constraintEqualToAnchor:self.videoContainerView.topAnchor].active = YES;
 	[self.nativeAdCustomView.bottomAnchor constraintEqualToAnchor:self.videoContainerView.bottomAnchor].active = YES;
-
+    
+    
+    //查看广告详情按钮
+    self.nativeAdCustomView.clickButton.alpha=0.7;
+    self.nativeAdCustomView.clickButton.hidden = YES;
+    self.nativeAdCustomView.clickButton.layer.cornerRadius=17;
+    self.nativeAdCustomView.clickButton.layer.masksToBounds = YES;
 	self.nativeAdCustomView.clickButton.translatesAutoresizingMaskIntoConstraints = NO;
 	[self.nativeAdCustomView.clickButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
 	[self.nativeAdCustomView.clickButton.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor constant:-10].active = YES;
-	[self.nativeAdCustomView.clickButton.widthAnchor constraintEqualToConstant:80].active = YES;
-	[self.nativeAdCustomView.clickButton.heightAnchor constraintEqualToConstant:44].active = YES;
+	[self.nativeAdCustomView.clickButton.widthAnchor constraintEqualToConstant:100].active = YES;
+	[self.nativeAdCustomView.clickButton.heightAnchor constraintEqualToConstant:34].active = YES;
 	self.nativeAdCustomView.clickButton.backgroundColor = [UIColor orangeColor];
 
+    
 	self.countdownLabel.translatesAutoresizingMaskIntoConstraints = NO;
 	[self.nativeAdCustomView addSubview:self.countdownLabel];
 	[self.countdownLabel.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
 	[self.countdownLabel.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
-	[self.countdownLabel.widthAnchor constraintEqualToConstant:40].active = YES;
-	[self.countdownLabel.heightAnchor constraintEqualToConstant:40].active = YES;
+	[self.countdownLabel.widthAnchor constraintEqualToConstant:120].active = YES;
+	[self.countdownLabel.heightAnchor constraintEqualToConstant:30].active = YES;
+    self.countdownLabel.layer.cornerRadius = 15;
+    self.countdownLabel.layer.masksToBounds = YES;
+//    self.countdownLabel.alpha = 0.875;
 
-	self.skipButton.translatesAutoresizingMaskIntoConstraints = NO;
-	[self.nativeAdCustomView addSubview:self.skipButton];
-	[self.skipButton.rightAnchor constraintEqualToAnchor:self.countdownLabel.leftAnchor constant:-10].active = YES;
-	[self.skipButton.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
-	[self.skipButton.widthAnchor constraintEqualToConstant:60].active = YES;
-	[self.skipButton.heightAnchor constraintEqualToConstant:40].active = YES;
+    //跳过按钮底部的半透明view
+    self.skipButtonView.hidden = YES;
+    self.skipButtonView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.nativeAdCustomView addSubview:self.skipButtonView];
+    [self.skipButtonView.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
+    [self.skipButtonView.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
+    [self.skipButtonView.widthAnchor constraintEqualToConstant:80].active = YES;
+    [self.skipButtonView.heightAnchor constraintEqualToConstant:30].active = YES;
+    self.skipButtonView.layer.cornerRadius = 15;
+    self.skipButtonView.layer.masksToBounds = YES;
+    
+    //背景全透明的按钮
+    self.skipButton.hidden = YES;
+    self.skipButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.nativeAdCustomView addSubview:self.skipButton];
+    [self.skipButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
+    [self.skipButton.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
+    [self.skipButton.widthAnchor constraintEqualToConstant:80].active = YES;
+    [self.skipButton.heightAnchor constraintEqualToConstant:30].active = YES;
+    self.skipButton.layer.cornerRadius = 15;
+    self.skipButton.layer.masksToBounds = YES;
+    
 
+    
+    
+    //优量汇logo显示
+    self.nativeAdCustomView.logoView.hidden = YES;
 	[self.nativeAdCustomView addSubview:self.nativeAdCustomView.logoView];
 	self.nativeAdCustomView.logoView.translatesAutoresizingMaskIntoConstraints = NO;
-	[self.nativeAdCustomView.logoView.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor].active = YES;
-	[self.nativeAdCustomView.logoView.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor].active = YES;
+	[self.nativeAdCustomView.logoView.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
+	[self.nativeAdCustomView.logoView.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor constant:-10].active = YES;
 	[self.nativeAdCustomView.logoView.widthAnchor constraintEqualToConstant:kGDTLogoImageViewDefaultWidth].active = YES;
 	[self.nativeAdCustomView.logoView.heightAnchor constraintEqualToConstant:kGDTLogoImageViewDefaultHeight].active = YES;
 
@@ -444,10 +479,17 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adClosed",@"msg":@"贴片广告关闭"}];
 	[self.timer invalidate];
 	self.timer = nil;
+    self.countdownLabel.hidden = YES;
+    self.skipButton.hidden = YES;
+    self.skipButtonView.hidden = YES;
+    self.nativeAdCustomView.clickButton.hidden = YES;
+    self.nativeAdCustomView.logoView.hidden = YES;
+    
 	[self.nativeAdCustomView removeFromSuperview];
 	[self.nativeAdCustomView unregisterDataObject];
 
 	[self.videoContainerView removeFromSuperview];
+
 
 	_nativeAdCustomView = nil;
 	_videoContainerView = nil;
@@ -464,6 +506,8 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	} else {
 		[self.nativeAdCustomView.clickButton setTitle:@"查看详情" forState:UIControlStateNormal];
 	}
+    self.nativeAdCustomView.clickButton.hidden = NO;
+    self.nativeAdCustomView.logoView.hidden = NO;
 	self.nativeAdCustomView.mediaView.delegate = self;
 	self.timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(timeUpdate) userInfo:nil repeats:YES];
 }
@@ -478,9 +522,12 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	if (playTime > 5000) {
 		// 播放 5 秒展示跳过按钮
 		self.skipButton.hidden = NO;
+        self.skipButtonView.hidden = NO;
+        self.countdownLabel.hidden = YES;
+        [_skipButton setTitle:[NSString stringWithFormat:@" %@ | 关闭 ", @((NSInteger)(duration - playTime) / 1000)] forState:UIControlStateNormal];
 	}
 	if (playTime < duration) {
-		self.countdownLabel.text =  [NSString stringWithFormat:@"%@", @((NSInteger)(duration - playTime) / 1000)];
+		self.countdownLabel.text =  [NSString stringWithFormat:@" %@ | %@秒后可关闭 ", @((NSInteger)(duration - playTime) / 1000), @((NSInteger)(6 - playTime/1000))];
 		NSLog(@"总时长：%@， 已播放：%@", @(duration), @(playTime));
 	}
 }
@@ -516,7 +563,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 {
 	if (!_videoContainerView) {
 		_videoContainerView = [[UIView alloc] init];
-		_videoContainerView.backgroundColor = [UIColor grayColor];
+		_videoContainerView.backgroundColor = [UIColor clearColor];
 		_videoContainerView.accessibilityIdentifier = @"videoContainerView_id";
 	}
 	return _videoContainerView;
@@ -524,27 +571,43 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 
 - (UILabel *)countdownLabel
 {
-	if (!_countdownLabel) {
-		_countdownLabel = [[UILabel alloc] init];
-		_countdownLabel.hidden = YES;
-		_countdownLabel.textColor = [UIColor redColor];
-		_countdownLabel.backgroundColor = [UIColor blueColor];
-		_countdownLabel.textAlignment = NSTextAlignmentCenter;
-		_countdownLabel.accessibilityIdentifier = @"countdownLabel_id";
-	}
-	return _countdownLabel;
+    if (!_countdownLabel) {
+        _countdownLabel = [[UILabel alloc] init];
+        _countdownLabel.hidden = YES;
+        _countdownLabel.textColor = [UIColor whiteColor];
+        _countdownLabel.font = [UIFont systemFontOfSize:12.0];
+        _countdownLabel.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.3];
+        _countdownLabel.textAlignment = NSTextAlignmentCenter;
+        _countdownLabel.accessibilityIdentifier = @"countdownLabel_id";
+    }
+    return _countdownLabel;
+}
+- (UIView *)skipButtonView
+{
+    if (!_skipButtonView) {
+        _skipButtonView = [[UIView alloc] init];
+        _skipButtonView.hidden = YES;
+        _skipButtonView.backgroundColor = [UIColor blackColor];
+        _skipButtonView.accessibilityIdentifier = @"_skipButtonView_id";
+        _skipButtonView.alpha = 0.3;
+    }
+    return _skipButtonView;
 }
 
 - (UIButton *)skipButton
 {
 	if (!_skipButton) {
 		_skipButton = [[UIButton alloc] init];
-		_skipButton.backgroundColor = [UIColor grayColor];
+		_skipButton.backgroundColor = [UIColor clearColor];
+        _skipButton.titleLabel.textColor = [UIColor grayColor];
+        _skipButton.titleLabel.font = [UIFont systemFontOfSize:12.0];
 		_skipButton.hidden = YES;
-		[_skipButton setTitle:@"跳过" forState:UIControlStateNormal];
+    
+        
 		[_skipButton addTarget:self action:@selector(clickSkip) forControlEvents:UIControlEventTouchUpInside];
 		_skipButton.accessibilityIdentifier = @"skipButton_id";
 	}
+    
 	return _skipButton;
 }
 
