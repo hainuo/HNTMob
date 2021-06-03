@@ -686,7 +686,8 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		}
 	}
 
-	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo,@"userInfo":error.userInfo}];
+    NSDictionary *userInfo = error.userInfo;
+    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo,@"userInfo":userInfo?:@{}}];
 	if (error.code == 5004) {
 		NSLog(@"没匹配的广告，禁止重试，否则影响流量变现效果");
 	} else if (error.code == 5005) {
