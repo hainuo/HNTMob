@@ -50,6 +50,8 @@ static void *nl_sqlite_adId_key = &nl_sqlite_adId_key;
 @property (nonatomic, strong) UILabel *countdownLabel;
 @property (nonatomic, strong) UIButton *skipButton;
 @property (nonatomic, strong) UIView *skipButtonView;
+@property (nonatomic,strong) UIButton   *backButton;
+@property (nonatomic,strong) UIView *backButtonView;
 @property (nonatomic, strong) NSTimer *timer;
 
 //UnifiedIterstitialAd //插屏2.0
@@ -353,7 +355,8 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	float y = [rect floatValueForKey:@"y" defaultValue:0];
 	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
 	float height = [rect floatValueForKey:@"height" defaultValue:width/16.0 * 9];
-
+    NSString *imgPath = [params stringValueForKey:@"imgPath" defaultValue:nil];
+  
 	NSLog(@"rect %@ %f %f %f %f",rect,x,y,width,height);
 
 
@@ -398,6 +401,29 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self.nativeAdCustomView.topAnchor constraintEqualToAnchor:self.videoContainerView.topAnchor].active = YES;
 	[self.nativeAdCustomView.bottomAnchor constraintEqualToAnchor:self.videoContainerView.bottomAnchor].active = YES;
     
+    //设置饭回按钮底部的半透明图片
+    self.backButtonView.hidden = YES;
+    self.backButtonView.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.nativeAdCustomView addSubview:self.backButtonView];
+    [self.backButtonView.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
+    [self.backButtonView.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
+    [self.backButtonView.widthAnchor constraintEqualToConstant:30].active = YES;
+    [self.backButtonView.heightAnchor constraintEqualToConstant:30].active = YES;
+    self.backButtonView.layer.cornerRadius = 15;
+    self.backButtonView.layer.masksToBounds = YES;
+    //设置返回按钮
+    self.backButton.hidden = YES;
+    [self.backButton setImage:[UIImage imageNamed:@"uz/Engine.bundle/back.png"] forState:UIControlStateNormal];
+    [self.backButton setImageEdgeInsets:UIEdgeInsetsMake(5,5,5,5)];//上左下右
+    self.backButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
+    self.backButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.nativeAdCustomView addSubview:self.backButton];
+    [self.backButton.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
+    [self.backButton.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
+    [self.backButton.widthAnchor constraintEqualToConstant:30].active = YES;
+    [self.backButton.heightAnchor constraintEqualToConstant:30].active = YES;
+    self.backButton.layer.cornerRadius = 15;
+    self.backButton.layer.masksToBounds = YES;
     
     //查看广告详情按钮
     self.nativeAdCustomView.clickButton.alpha=0.7;
@@ -475,6 +501,11 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self closeAd];
 
 }
+- (void)clickBack
+{
+    [self clickSkip];
+    [self sendCustomEvent:@"clickBackButton" extra:@{@"code":@1,@"msg":@"用户点击了贴片广告的返回按钮"}];
+}
 -(void) closeAd {
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adClosed",@"msg":@"贴片广告关闭"}];
 	[self.timer invalidate];
@@ -518,6 +549,8 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	CGFloat duration = [self.nativeAdCustomView.mediaView videoDuration];
 	if (duration > 0) {
 		self.countdownLabel.hidden = NO;
+        self.backButton.hidden = NO;
+        self.backButtonView.hidden = NO;
 	}
 	if (playTime > 5000) {
 		// 播放 5 秒展示跳过按钮
@@ -582,6 +615,31 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
     }
     return _countdownLabel;
 }
+-(UIView *)backButtonView{
+    if (!_backButtonView) {
+        _backButtonView = [[UIView alloc] init];
+        _backButtonView.hidden = YES;
+        _backButtonView.backgroundColor = [UIColor blackColor];
+        _backButtonView.accessibilityIdentifier = @"_backButtonView_id";
+        _backButtonView.alpha = 0.3;
+    }
+    return _backButtonView;
+}
+-(UIButton *)backButton{
+    if (!_backButton) {
+        _backButton = [[UIButton alloc] init];
+        _backButton.backgroundColor = [UIColor clearColor];
+        _backButton.titleLabel.textColor = [UIColor grayColor];
+        _backButton.titleLabel.font = [UIFont systemFontOfSize:12.0];
+        _backButton.hidden = YES;
+    
+        
+        [_backButton addTarget:self action:@selector(clickBack) forControlEvents:UIControlEventTouchUpInside];
+        _backButton.accessibilityIdentifier = @"backButton_id";
+    }
+    
+    return _backButton;
+}
 - (UIView *)skipButtonView
 {
     if (!_skipButtonView) {
@@ -618,7 +676,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		NSLog(@"成功请求到广告数据");
 		self.dataObject = unifiedNativeAdDataObjects[0];
 		NSLog(@"eCPM:%ld eCPMLevel:%@", [self.dataObject eCPM], [self.dataObject eCPMLevel]);
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功",@"userInfo":error.userInfo}];
+        [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功"}];
 		if (self.dataObject.isVideoAd) {
 			[self reloadAd];
 			return;
