@@ -120,7 +120,7 @@ JS_METHOD_SYNC(init:(UZModuleMethodContext *)context){
 		[ret setValue:@"appId注册失败" forKey:@"msg"];
 		[ret setValue:[GDTSDKConfig sdkVersion] forKey:@"version"];
 	}
-    usleep(500);
+	usleep(500);
 	return ret;
 }
 
@@ -244,7 +244,7 @@ JS_METHOD_SYNC(showSplashAd:(UZModuleMethodContext *)context){
 		eventType = @"adShowFailed";
 		msg = @"开屏广告素材显示失败";
 	}
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadSplashAdObserver" object:@{@"code":@0,@"splashAdType":self.splashAdType,@"eventType":eventType,@"userInfo":error.userInfo,@"msg":msg}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadSplashAdObserver" object:@{@"code":@0,@"splashAdType":self.splashAdType,@"eventType":eventType,@"userInfo":error.userInfo,@"msg":msg}];
 	[self removeSplashNotification];
 	self.splashAdType = nil;
 }
@@ -340,23 +340,26 @@ JS_METHOD_SYNC(showSplashAd:(UZModuleMethodContext *)context){
 
 #pragma mark - 贴片广告 HNTMob unifiedNativeAd
 JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
-    
-    [self closeAd];
-    
+
+	[self closeAd];
+
 	NSDictionary *params = context.param;
 	NSString *adId  = [params stringValueForKey:@"adId" defaultValue:nil];
 	NSString *fixedOn  = [params stringValueForKey:@"fixedOn" defaultValue:nil];
 	NSDictionary *rect = [params dictValueForKey:@"rect" defaultValue:@{}];
 	NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
 	NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
+    BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:NO];
+    BOOL detailPageVideoMuted = [params boolValueForKey:@"detailPageVideoMuted" defaultValue:NO];
+    BOOL userControlEnable = [params boolValueForKey:@"userControlEnable" defaultValue:NO];
+    
 	BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
 
 	float x = [rect floatValueForKey:@"x" defaultValue:0];
 	float y = [rect floatValueForKey:@"y" defaultValue:0];
 	float width = [rect floatValueForKey:@"width" defaultValue:[UIScreen mainScreen].bounds.size.width];
 	float height = [rect floatValueForKey:@"height" defaultValue:width/16.0 * 9];
-    NSString *imgPath = [params stringValueForKey:@"imgPath" defaultValue:nil];
-  
+
 	NSLog(@"rect %@ %f %f %f %f",rect,x,y,width,height);
 
 
@@ -365,9 +368,10 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 //    [self addSubview:frameView fixedOn:fixedOn fixed:fixed];
 
 	self.videoConfig = [[GDTVideoConfig alloc] init];
-	self.videoConfig.videoMuted = YES;
+	self.videoConfig.videoMuted = videoMuted;
 	self.videoConfig.autoPlayPolicy = GDTVideoAutoPlayPolicyAlways;
-	self.videoConfig.userControlEnable = YES;
+    self.videoConfig.detailPageVideoMuted = detailPageVideoMuted;
+	self.videoConfig.userControlEnable = userControlEnable;
 	self.videoConfig.autoResumeEnable = NO;
 	self.videoConfig.detailPageEnable = NO;
 	self.videoConfig.coverImageEnable = YES;
@@ -382,7 +386,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self.unifiedNativeAd setVastClassName:@"IMAGDT_VASTVideoAdAdapter"]; // 如果需要支持 VAST 广告，拉取广告前设置
 
 	[self.unifiedNativeAd loadAdWithAdCount:1];
-    self.videoContainerView.frame = CGRectMake(x, y, width, height);
+	self.videoContainerView.frame = CGRectMake(x, y, width, height);
 	[self addSubview:self.videoContainerView fixedOn:fixedOn fixed:fixed];
 	// 播放器容器
 //    self.videoContainerView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -400,36 +404,36 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self.nativeAdCustomView.rightAnchor constraintEqualToAnchor:self.videoContainerView.rightAnchor].active = YES;
 	[self.nativeAdCustomView.topAnchor constraintEqualToAnchor:self.videoContainerView.topAnchor].active = YES;
 	[self.nativeAdCustomView.bottomAnchor constraintEqualToAnchor:self.videoContainerView.bottomAnchor].active = YES;
-    
-    //设置饭回按钮底部的半透明图片
-    self.backButtonView.hidden = YES;
-    self.backButtonView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView addSubview:self.backButtonView];
-    [self.backButtonView.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
-    [self.backButtonView.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
-    [self.backButtonView.widthAnchor constraintEqualToConstant:30].active = YES;
-    [self.backButtonView.heightAnchor constraintEqualToConstant:30].active = YES;
-    self.backButtonView.layer.cornerRadius = 15;
-    self.backButtonView.layer.masksToBounds = YES;
-    //设置返回按钮
-    self.backButton.hidden = YES;
-    [self.backButton setImage:[UIImage imageNamed:@"uz/Engine.bundle/back.png"] forState:UIControlStateNormal];
-    [self.backButton setImageEdgeInsets:UIEdgeInsetsMake(5,5,5,5)];//上左下右
-    self.backButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
-    self.backButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView addSubview:self.backButton];
-    [self.backButton.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
-    [self.backButton.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
-    [self.backButton.widthAnchor constraintEqualToConstant:30].active = YES;
-    [self.backButton.heightAnchor constraintEqualToConstant:30].active = YES;
-    self.backButton.layer.cornerRadius = 15;
-    self.backButton.layer.masksToBounds = YES;
-    
-    //查看广告详情按钮
-    self.nativeAdCustomView.clickButton.alpha=0.7;
-    self.nativeAdCustomView.clickButton.hidden = YES;
-    self.nativeAdCustomView.clickButton.layer.cornerRadius=17;
-    self.nativeAdCustomView.clickButton.layer.masksToBounds = YES;
+
+	//设置饭回按钮底部的半透明图片
+	self.backButtonView.hidden = YES;
+	self.backButtonView.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView addSubview:self.backButtonView];
+	[self.backButtonView.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
+	[self.backButtonView.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
+	[self.backButtonView.widthAnchor constraintEqualToConstant:30].active = YES;
+	[self.backButtonView.heightAnchor constraintEqualToConstant:30].active = YES;
+	self.backButtonView.layer.cornerRadius = 15;
+	self.backButtonView.layer.masksToBounds = YES;
+	//设置返回按钮
+	self.backButton.hidden = YES;
+	[self.backButton setImage:[UIImage imageNamed:@"uz/Engine.bundle/back.png"] forState:UIControlStateNormal];
+	[self.backButton setImageEdgeInsets:UIEdgeInsetsMake(5,5,5,5)];//上左下右
+	self.backButton.imageView.contentMode = UIViewContentModeScaleAspectFit;
+	self.backButton.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView addSubview:self.backButton];
+	[self.backButton.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
+	[self.backButton.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
+	[self.backButton.widthAnchor constraintEqualToConstant:30].active = YES;
+	[self.backButton.heightAnchor constraintEqualToConstant:30].active = YES;
+	self.backButton.layer.cornerRadius = 15;
+	self.backButton.layer.masksToBounds = YES;
+
+	//查看广告详情按钮
+	self.nativeAdCustomView.clickButton.alpha=0.7;
+	self.nativeAdCustomView.clickButton.hidden = YES;
+	self.nativeAdCustomView.clickButton.layer.cornerRadius=17;
+	self.nativeAdCustomView.clickButton.layer.masksToBounds = YES;
 	self.nativeAdCustomView.clickButton.translatesAutoresizingMaskIntoConstraints = NO;
 	[self.nativeAdCustomView.clickButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
 	[self.nativeAdCustomView.clickButton.bottomAnchor constraintEqualToAnchor:self.nativeAdCustomView.bottomAnchor constant:-10].active = YES;
@@ -437,44 +441,44 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	[self.nativeAdCustomView.clickButton.heightAnchor constraintEqualToConstant:34].active = YES;
 	self.nativeAdCustomView.clickButton.backgroundColor = [UIColor orangeColor];
 
-    
+
 	self.countdownLabel.translatesAutoresizingMaskIntoConstraints = NO;
 	[self.nativeAdCustomView addSubview:self.countdownLabel];
 	[self.countdownLabel.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
 	[self.countdownLabel.topAnchor constraintEqualToAnchor:self.nativeAdCustomView.topAnchor constant:10].active = YES;
 	[self.countdownLabel.widthAnchor constraintEqualToConstant:120].active = YES;
 	[self.countdownLabel.heightAnchor constraintEqualToConstant:30].active = YES;
-    self.countdownLabel.layer.cornerRadius = 15;
-    self.countdownLabel.layer.masksToBounds = YES;
+	self.countdownLabel.layer.cornerRadius = 15;
+	self.countdownLabel.layer.masksToBounds = YES;
 //    self.countdownLabel.alpha = 0.875;
 
-    //跳过按钮底部的半透明view
-    self.skipButtonView.hidden = YES;
-    self.skipButtonView.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView addSubview:self.skipButtonView];
-    [self.skipButtonView.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
-    [self.skipButtonView.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
-    [self.skipButtonView.widthAnchor constraintEqualToConstant:80].active = YES;
-    [self.skipButtonView.heightAnchor constraintEqualToConstant:30].active = YES;
-    self.skipButtonView.layer.cornerRadius = 15;
-    self.skipButtonView.layer.masksToBounds = YES;
-    
-    //背景全透明的按钮
-    self.skipButton.hidden = YES;
-    self.skipButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [self.nativeAdCustomView addSubview:self.skipButton];
-    [self.skipButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
-    [self.skipButton.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
-    [self.skipButton.widthAnchor constraintEqualToConstant:80].active = YES;
-    [self.skipButton.heightAnchor constraintEqualToConstant:30].active = YES;
-    self.skipButton.layer.cornerRadius = 15;
-    self.skipButton.layer.masksToBounds = YES;
-    
+	//跳过按钮底部的半透明view
+	self.skipButtonView.hidden = YES;
+	self.skipButtonView.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView addSubview:self.skipButtonView];
+	[self.skipButtonView.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
+	[self.skipButtonView.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
+	[self.skipButtonView.widthAnchor constraintEqualToConstant:80].active = YES;
+	[self.skipButtonView.heightAnchor constraintEqualToConstant:30].active = YES;
+	self.skipButtonView.layer.cornerRadius = 15;
+	self.skipButtonView.layer.masksToBounds = YES;
 
-    
-    
-    //优量汇logo显示
-    self.nativeAdCustomView.logoView.hidden = YES;
+	//背景全透明的按钮
+	self.skipButton.hidden = YES;
+	self.skipButton.translatesAutoresizingMaskIntoConstraints = NO;
+	[self.nativeAdCustomView addSubview:self.skipButton];
+	[self.skipButton.rightAnchor constraintEqualToAnchor:self.nativeAdCustomView.rightAnchor constant:-10].active = YES;
+	[self.skipButton.topAnchor constraintEqualToAnchor:self.countdownLabel.topAnchor].active = YES;
+	[self.skipButton.widthAnchor constraintEqualToConstant:80].active = YES;
+	[self.skipButton.heightAnchor constraintEqualToConstant:30].active = YES;
+	self.skipButton.layer.cornerRadius = 15;
+	self.skipButton.layer.masksToBounds = YES;
+
+
+
+
+	//优量汇logo显示
+	self.nativeAdCustomView.logoView.hidden = YES;
 	[self.nativeAdCustomView addSubview:self.nativeAdCustomView.logoView];
 	self.nativeAdCustomView.logoView.translatesAutoresizingMaskIntoConstraints = NO;
 	[self.nativeAdCustomView.logoView.leftAnchor constraintEqualToAnchor:self.nativeAdCustomView.leftAnchor constant:10].active = YES;
@@ -494,6 +498,13 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 
 	[context callbackWithRet:@{@"code":@1,@"unifiedNativeAdType":@"loadUniFiedNativeAd",@"eventType":@"doLoad",@"msg":@"广告加载命令执行成功"} err:nil delete:NO];
 }
+
+JS_METHOD_SYNC(closeUnifiedNativeAd:(UZModuleMethodContext *)context){
+	dispatch_async(dispatch_get_main_queue(), ^{
+		[self closeAd];
+	});
+	return @{@"code":@1,@"unifiedNativeAdType":@"closeUniFiedNativeAd",@"eventType":@"doClose",@"msg":@"关闭贴片广告命令执行成功！"};
+}
 - (void)clickSkip
 {
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUniFiedNativeAd",@"eventType":@"adClickSkip",@"msg":@"贴片广告点击跳过"}];
@@ -503,19 +514,21 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 }
 - (void)clickBack
 {
-    [self clickSkip];
-    [self sendCustomEvent:@"clickBackButton" extra:@{@"code":@1,@"msg":@"用户点击了贴片广告的返回按钮"}];
+	[self clickSkip];
+	[self sendCustomEvent:@"clickBackButton" extra:@{@"code":@1,@"msg":@"用户点击了贴片广告的返回按钮"}];
 }
 -(void) closeAd {
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"showUniFiedNativeAd",@"eventType":@"adClosed",@"msg":@"贴片广告关闭"}];
 	[self.timer invalidate];
 	self.timer = nil;
-    self.countdownLabel.hidden = YES;
-    self.skipButton.hidden = YES;
-    self.skipButtonView.hidden = YES;
-    self.nativeAdCustomView.clickButton.hidden = YES;
-    self.nativeAdCustomView.logoView.hidden = YES;
-    
+	self.countdownLabel.hidden = YES;
+	self.skipButton.hidden = YES;
+	self.skipButtonView.hidden = YES;
+	self.backButton.hidden = YES;
+	self.backButtonView.hidden = YES;
+	self.nativeAdCustomView.clickButton.hidden = YES;
+	self.nativeAdCustomView.logoView.hidden = YES;
+
 	[self.nativeAdCustomView removeFromSuperview];
 	[self.nativeAdCustomView unregisterDataObject];
 
@@ -537,8 +550,8 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	} else {
 		[self.nativeAdCustomView.clickButton setTitle:@"查看详情" forState:UIControlStateNormal];
 	}
-    self.nativeAdCustomView.clickButton.hidden = NO;
-    self.nativeAdCustomView.logoView.hidden = NO;
+	self.nativeAdCustomView.clickButton.hidden = NO;
+	self.nativeAdCustomView.logoView.hidden = NO;
 	self.nativeAdCustomView.mediaView.delegate = self;
 	self.timer = [NSTimer scheduledTimerWithTimeInterval:0.5 target:self selector:@selector(timeUpdate) userInfo:nil repeats:YES];
 }
@@ -549,15 +562,15 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	CGFloat duration = [self.nativeAdCustomView.mediaView videoDuration];
 	if (duration > 0) {
 		self.countdownLabel.hidden = NO;
-        self.backButton.hidden = NO;
-        self.backButtonView.hidden = NO;
+		self.backButton.hidden = NO;
+		self.backButtonView.hidden = NO;
 	}
 	if (playTime > 5000) {
 		// 播放 5 秒展示跳过按钮
 		self.skipButton.hidden = NO;
-        self.skipButtonView.hidden = NO;
-        self.countdownLabel.hidden = YES;
-        [_skipButton setTitle:[NSString stringWithFormat:@" %@ | 关闭 ", @((NSInteger)(duration - playTime) / 1000)] forState:UIControlStateNormal];
+		self.skipButtonView.hidden = NO;
+		self.countdownLabel.hidden = YES;
+		[_skipButton setTitle:[NSString stringWithFormat:@" %@ | 关闭 ", @((NSInteger)(duration - playTime) / 1000)] forState:UIControlStateNormal];
 	}
 	if (playTime < duration) {
 		self.countdownLabel.text =  [NSString stringWithFormat:@" %@ | %@秒后可关闭 ", @((NSInteger)(duration - playTime) / 1000), @((NSInteger)(6 - playTime/1000))];
@@ -604,52 +617,52 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 
 - (UILabel *)countdownLabel
 {
-    if (!_countdownLabel) {
-        _countdownLabel = [[UILabel alloc] init];
-        _countdownLabel.hidden = YES;
-        _countdownLabel.textColor = [UIColor whiteColor];
-        _countdownLabel.font = [UIFont systemFontOfSize:12.0];
-        _countdownLabel.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.3];
-        _countdownLabel.textAlignment = NSTextAlignmentCenter;
-        _countdownLabel.accessibilityIdentifier = @"countdownLabel_id";
-    }
-    return _countdownLabel;
+	if (!_countdownLabel) {
+		_countdownLabel = [[UILabel alloc] init];
+		_countdownLabel.hidden = YES;
+		_countdownLabel.textColor = [UIColor whiteColor];
+		_countdownLabel.font = [UIFont systemFontOfSize:12.0];
+		_countdownLabel.backgroundColor = [UIColor colorWithRed:0 green:0 blue:0 alpha:0.3];
+		_countdownLabel.textAlignment = NSTextAlignmentCenter;
+		_countdownLabel.accessibilityIdentifier = @"countdownLabel_id";
+	}
+	return _countdownLabel;
 }
--(UIView *)backButtonView{
-    if (!_backButtonView) {
-        _backButtonView = [[UIView alloc] init];
-        _backButtonView.hidden = YES;
-        _backButtonView.backgroundColor = [UIColor blackColor];
-        _backButtonView.accessibilityIdentifier = @"_backButtonView_id";
-        _backButtonView.alpha = 0.3;
-    }
-    return _backButtonView;
+-(UIView *)backButtonView {
+	if (!_backButtonView) {
+		_backButtonView = [[UIView alloc] init];
+		_backButtonView.hidden = YES;
+		_backButtonView.backgroundColor = [UIColor blackColor];
+		_backButtonView.accessibilityIdentifier = @"_backButtonView_id";
+		_backButtonView.alpha = 0.3;
+	}
+	return _backButtonView;
 }
--(UIButton *)backButton{
-    if (!_backButton) {
-        _backButton = [[UIButton alloc] init];
-        _backButton.backgroundColor = [UIColor clearColor];
-        _backButton.titleLabel.textColor = [UIColor grayColor];
-        _backButton.titleLabel.font = [UIFont systemFontOfSize:12.0];
-        _backButton.hidden = YES;
-    
-        
-        [_backButton addTarget:self action:@selector(clickBack) forControlEvents:UIControlEventTouchUpInside];
-        _backButton.accessibilityIdentifier = @"backButton_id";
-    }
-    
-    return _backButton;
+-(UIButton *)backButton {
+	if (!_backButton) {
+		_backButton = [[UIButton alloc] init];
+		_backButton.backgroundColor = [UIColor clearColor];
+		_backButton.titleLabel.textColor = [UIColor grayColor];
+		_backButton.titleLabel.font = [UIFont systemFontOfSize:12.0];
+		_backButton.hidden = YES;
+
+
+		[_backButton addTarget:self action:@selector(clickBack) forControlEvents:UIControlEventTouchUpInside];
+		_backButton.accessibilityIdentifier = @"backButton_id";
+	}
+
+	return _backButton;
 }
 - (UIView *)skipButtonView
 {
-    if (!_skipButtonView) {
-        _skipButtonView = [[UIView alloc] init];
-        _skipButtonView.hidden = YES;
-        _skipButtonView.backgroundColor = [UIColor blackColor];
-        _skipButtonView.accessibilityIdentifier = @"_skipButtonView_id";
-        _skipButtonView.alpha = 0.3;
-    }
-    return _skipButtonView;
+	if (!_skipButtonView) {
+		_skipButtonView = [[UIView alloc] init];
+		_skipButtonView.hidden = YES;
+		_skipButtonView.backgroundColor = [UIColor blackColor];
+		_skipButtonView.accessibilityIdentifier = @"_skipButtonView_id";
+		_skipButtonView.alpha = 0.3;
+	}
+	return _skipButtonView;
 }
 
 - (UIButton *)skipButton
@@ -657,15 +670,15 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 	if (!_skipButton) {
 		_skipButton = [[UIButton alloc] init];
 		_skipButton.backgroundColor = [UIColor clearColor];
-        _skipButton.titleLabel.textColor = [UIColor grayColor];
-        _skipButton.titleLabel.font = [UIFont systemFontOfSize:12.0];
+		_skipButton.titleLabel.textColor = [UIColor grayColor];
+		_skipButton.titleLabel.font = [UIFont systemFontOfSize:12.0];
 		_skipButton.hidden = YES;
-    
-        
+
+
 		[_skipButton addTarget:self action:@selector(clickSkip) forControlEvents:UIControlEventTouchUpInside];
 		_skipButton.accessibilityIdentifier = @"skipButton_id";
 	}
-    
+
 	return _skipButton;
 }
 
@@ -676,7 +689,7 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		NSLog(@"成功请求到广告数据");
 		self.dataObject = unifiedNativeAdDataObjects[0];
 		NSLog(@"eCPM:%ld eCPMLevel:%@", [self.dataObject eCPM], [self.dataObject eCPMLevel]);
-        [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功"}];
+		[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoaded",@"msg":@"信息流广告加载成功"}];
 		if (self.dataObject.isVideoAd) {
 			[self reloadAd];
 			return;
@@ -686,8 +699,8 @@ JS_METHOD(showUnifiedNativeAd:(UZModuleMethodContext *)context){
 		}
 	}
 
-    NSDictionary *userInfo = error.userInfo;
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo,@"userInfo":userInfo?:@{}}];
+	NSDictionary *userInfo = error.userInfo;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedNativeAd" object:@{@"code":@1,@"unifiedNativeAdType":@"loadUnifiedNativeAd",@"eventType":@"adLoadFailed",@"msg":error.userInfo,@"userInfo":userInfo?:@{}}];
 	if (error.code == 5004) {
 		NSLog(@"没匹配的广告，禁止重试，否则影响流量变现效果");
 	} else if (error.code == 5005) {
@@ -796,11 +809,11 @@ JS_METHOD(loadUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 	BOOL isFullScreen = [params boolValueForKey:@"isFullAd" defaultValue:YES];
 	NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
 	NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
-    
-    BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:NO];
-    BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:NO];
-    BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:NO];
-    
+
+	BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:NO];
+	BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:NO];
+	BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:NO];
+
 //    BOOL fixed = [params boolValueForKey:@"fixed" defaultValue:NO];
 	if (_interstitialAd) {
 		_interstitialAd.delegate = nil;
@@ -808,20 +821,20 @@ JS_METHOD(loadUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 	_interstitialAd = [[GDTUnifiedInterstitialAd alloc] initWithPlacementId:adId];
 	_interstitialAd.delegate = self;
 	_interstitialAd.videoMuted = videoMuted;
-    _interstitialAd.detailPageVideoMuted = videoDetailPageVideoMuted;
-    _interstitialAd.videoAutoPlayOnWWAN = videoAutoPlay;
+	_interstitialAd.detailPageVideoMuted = videoDetailPageVideoMuted;
+	_interstitialAd.videoAutoPlayOnWWAN = videoAutoPlay;
 	_interstitialAd.minVideoDuration = minVideoDuration;
 	_interstitialAd.maxVideoDuration = maxVideoDuration; // 如果需要设置视频最大时长，可以通过这个参数来进行设置
-    NSLog(@"fullScreen %@",isFullScreen?@1:@0);
+	NSLog(@"fullScreen %@",isFullScreen?@1:@0);
 //	NSOperationQueue *waitQueue = [[NSOperationQueue alloc] init];
 //	[waitQueue addOperationWithBlock:^{
 //	         // 同步到主线程
 //	         dispatch_async(dispatch_get_main_queue(), ^{
-					if(isFullScreen) {
-						[self.interstitialAd loadFullScreenAd];
-					}else{
-						[self.interstitialAd loadAd];
-					}
+	if(isFullScreen) {
+		[self.interstitialAd loadFullScreenAd];
+	}else{
+		[self.interstitialAd loadAd];
+	}
 //				});
 //	 }];
 
@@ -889,7 +902,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
 - (void)unifiedInterstitialFailToLoadAd:(GDTUnifiedInterstitialAd *)unifiedInterstitial error:(NSError *)error {
 	NSLog(@"%s Error : %@",__FUNCTION__,error);
 	NSLog(@"interstitial fail to load, Error : %@",error);
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoadFailed",@"msg":@"插屏广告加载失败",@"userInfo":error.userInfo}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"loadUnifiedInterstitialAd",@"eventType":@"adLoadFailed",@"msg":@"插屏广告加载失败",@"userInfo":error.userInfo}];
 	[self removeUnifiedInterstitialAdNotification];
 }
 
@@ -919,7 +932,7 @@ JS_METHOD_SYNC(showUnifiedInterstitialAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedInterstitialFailToPresent:(GDTUnifiedInterstitialAd *)unifiedInterstitial error:(NSError *)error {
 	NSLog(@"%s 插屏展示失败 %@",__FUNCTION__,error);
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFailed",@"msg":@"插屏广告展示失败了",@"userInfo":error.userInfo,@"isAdValid":@(unifiedInterstitial.isAdValid)}];
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadUnifiedInterstitialAd" object:@{@"code":@0,@"unifiedInterstitialAdType":@"showUnifiedInterstitialAd",@"eventType":@"presentFailed",@"msg":@"插屏广告展示失败了",@"userInfo":error.userInfo,@"isAdValid":@(unifiedInterstitial.isAdValid)}];
 	if(!unifiedInterstitial.isAdValid) {
 		[self removeUnifiedInterstitialAdNotification];
 		_interstitialAd = nil;
@@ -1157,8 +1170,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
 - (void)unifiedBannerViewDidLoad:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"%s",__FUNCTION__);
 	NSLog(@"unified banner did load");
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
-    [[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"adId":adId,@"eventType":@"adLoaded",@"msg":@"广告加载成功"}];
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
+	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"loadBannerAd",@"adId":adId,@"eventType":@"adLoaded",@"msg":@"广告加载成功"}];
 }
 
 /**
@@ -1169,8 +1182,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
 
 	NSLog(@"unified banner did load failed");
 	NSLog(@"error %@",error);
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@0,@"bannerAdType":@"loadBannerAd",@"adId":adId,@"eventType":@"adLoadFaild",@"msg":@"广告加载失败",@"userInfo":error.userInfo}];
 	[self removeBannerView];
 	[self removeUnifiedBannerViewObserver];
@@ -1182,8 +1195,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillExpose:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will expose ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adWillShow",@"msg":@"广告即将曝光"}];
 
 }
@@ -1193,8 +1206,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewClicked:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner clicked ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adClicked",@"msg":@"广告被点击了"}];
 
 }
@@ -1204,8 +1217,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillPresentFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will open full ad page ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageWillShow",@"msg":@"广告详情页即将打开"}];
 }
 
@@ -1214,8 +1227,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewDidPresentFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner did open full ad page ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageShowed",@"msg":@"广告详情页打开了"}];
 }
 
@@ -1224,8 +1237,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillDismissFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will close full ad page ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageWillClosed",@"msg":@"广告详情页即将关闭"}];
 }
 
@@ -1234,8 +1247,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewDidDismissFullScreenModal:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner did close full ad page ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adPageClosed",@"msg":@"广告详情页关闭"}];
 }
 
@@ -1244,8 +1257,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillLeaveApplication:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will close full ad page ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"openOtherApp",@"msg":@"banner打开其他app"}];
 }
 
@@ -1254,8 +1267,8 @@ JS_METHOD(closeBannerAd:(UZModuleMethodContext *)context){
  */
 - (void)unifiedBannerViewWillClose:(GDTUnifiedBannerView *)unifiedBannerView {
 	NSLog(@"unified banner will close by user ");
-    
-    NSString *adId = unifiedBannerView.accessibilityIdentifier;
+
+	NSString *adId = unifiedBannerView.accessibilityIdentifier;
 	[[NSNotificationCenter defaultCenter] postNotificationName:@"loadBannerAdObserver" object:@{@"code":@1,@"bannerAdType":@"showBannerAd",@"adId":adId,@"eventType":@"adClosedByUser",@"msg":@"banner被用户关闭"}];
 }
 
@@ -1271,23 +1284,23 @@ JS_METHOD(loadNativeExpressAd:(UZModuleMethodContext *)context){
 	float y = [params floatValueForKey:@"y" defaultValue:0];
 	float width  = [params floatValueForKey:@"width" defaultValue:414];
 	float height  = [params floatValueForKey:@"height" defaultValue:50];
-    
-    
-    NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
-    NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
-    BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:YES];
-    BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:NO];
-    BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:YES];
-    
+
+
+	NSInteger minVideoDuration  = [params intValueForKey:@"minVideoDuration" defaultValue:(int)1];
+	NSInteger maxVideoDuration  = [params intValueForKey:@"maxVideoDuration" defaultValue:(int)300];
+	BOOL videoMuted = [params boolValueForKey:@"videoMuted" defaultValue:YES];
+	BOOL videoDetailPageVideoMuted = [params boolValueForKey:@"videoDetailPageVideoMuted" defaultValue:NO];
+	BOOL videoAutoPlay = [params boolValueForKey:@"videoAutoPlay" defaultValue:YES];
+
 	self.nativeExpressAd = [[GDTNativeExpressAd alloc] initWithPlacementId:adId
 	                        adSize:CGSizeMake(width,height)];
 	self.nativeExpressAd.delegate = self;
-    self.nativeExpressAd.maxVideoDuration = maxVideoDuration;
-    self.nativeExpressAd.minVideoDuration = minVideoDuration;
-    self.nativeExpressAd.videoMuted = videoMuted;
-    self.nativeExpressAd.detailPageVideoMuted = videoDetailPageVideoMuted;
-    self.nativeExpressAd.videoAutoPlayOnWWAN = videoAutoPlay;
-    
+	self.nativeExpressAd.maxVideoDuration = maxVideoDuration;
+	self.nativeExpressAd.minVideoDuration = minVideoDuration;
+	self.nativeExpressAd.videoMuted = videoMuted;
+	self.nativeExpressAd.detailPageVideoMuted = videoDetailPageVideoMuted;
+	self.nativeExpressAd.videoAutoPlayOnWWAN = videoAutoPlay;
+
 	[self.nativeExpressAd loadAd:1];
 
 	if(!self.nativeExpressAdObserver) {
